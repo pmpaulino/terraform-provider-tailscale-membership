@@ -134,6 +134,32 @@
 
 ---
 
+## Phase 8: Polish — Session 2026-02-07 Clarifications Follow-up
+
+**Purpose**: Implement the three new requirements introduced by the Session 2026-02-07 clarifications block in spec.md (FR-001a identity validation, FR-005a role set, FR-008 expired-but-listed = pending). Tests first (constitution).
+
+**Status note**: FR-005a is already enforced at the schema level (`validation.StringInSlice([]string{"member","admin"}, false)` on line 57 of `resource_tailnet_membership.go`); T029 locks that contract with an explicit test. FR-008 is already implicit in the Read mapping (any invite returned by `listUserInvites` is mapped to `state="pending"` without consulting an expiry field); T030/T032 lock and document that. FR-001a is the only material code change (T031): current `login_name` validation is `validation.StringLenBetween(1, 256)`, which lets through malformed identifiers.
+
+### Tests for Phase 8
+
+- [ ] T028 [P] Test: invalid `login_name` (malformed email such as `not-an-email`, `foo@`, empty after trim) returns a plan-time validation error and is NOT idempotent (a second call with the same invalid input still errors); assert no HTTP call is made to the Tailscale API (FR-001a) in tailscale/resource_tailnet_membership_test.go
+- [ ] T029 [P] Test: `role` values outside `{member, admin}` (e.g. `owner`, `it-admin`, `network-admin`, `auditor`, `made-up-role`) are rejected at plan time by the schema (FR-005a) in tailscale/resource_tailnet_membership_test.go
+- [ ] T030 [P] Test: an invitation returned by `listUserInvites` with an `Expires` timestamp in the past still resolves to `state = "pending"` via `membershipResolve` and via `ReadContext`; ensure-membership for the same identity remains a no-op while the invite is listed (FR-008) in tailscale/resource_tailnet_membership_test.go
+
+### Implementation for Phase 8
+
+- [ ] T031 Replace the `login_name` schema's `ValidateFunc: validation.StringLenBetween(1, 256)` with a `ValidateDiagFunc` that requires a well-formed email (e.g. `validation.StringMatch` with an RFC-5322-pragmatic regex, or `mail.ParseAddress` wrapped in `ValidateDiagFunc`); error message MUST mention FR-001a behavior ("not idempotent: fix the identity and re-run") (FR-001a) in tailscale/resource_tailnet_membership.go
+- [ ] T032 Add a code comment in `membershipResolve` immediately above the invite-match loop (around lines 110–119) referencing FR-008: "Any invite returned by listUserInvites is reported as state=pending; the invite's Expires timestamp is intentionally NOT consulted — the backend listing is the source of truth." (FR-008) in tailscale/resource_tailnet_membership.go
+
+### Docs & Coverage for Phase 8
+
+- [ ] T033 [P] Document the new validation constraints (`login_name` MUST be a well-formed email; `role` MUST be `member` or `admin`; other roles are out of scope) and the expired-but-listed invite semantics (`state` stays `pending` until the backend stops listing the invite) in docs/resources/tailnet_membership.md
+- [ ] T034 Re-run `go test ./tailscale/ -cover` after T028–T032 land and confirm 100% coverage on `resource_tailnet_membership.go` (new validation branch in T031 is fully covered by T028)
+
+**Checkpoint**: Phase 8 complete; spec.md ↔ implementation parity restored after Session 2026-02-07 clarifications.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -142,6 +168,7 @@
 - **Phase 2 (Foundational)**: Depends on Phase 1; **blocks** Phases 3–6
 - **Phases 3–6 (User Stories)**: Depend on Phase 2; US2 depends on US1 (Update builds on Create/Read); US3 depends on US1 (Delete builds on Create/Read); US4 depends on Read (US1)
 - **Phase 7 (Polish)**: Depends on Phases 3–6 complete
+- **Phase 8 (Clarifications Follow-up)**: Depends on Phase 7 complete (existing schema/resolve/Read code is the surface being refined); within Phase 8, tests T028–T030 must land and fail before implementation T031–T032
 
 ### User Story Dependencies
 
@@ -164,6 +191,7 @@
 - Phase 5: T016–T018 tests parallel; T019 sequential
 - Phase 6: T020–T021 (T021 [P])
 - Phase 7: T025, T026 [P]; T022, T023, T024, T027 sequential or as needed
+- Phase 8: T028–T030 tests parallel; T031 (schema validator) and T032 (comment) can run in parallel after tests are red; T033 docs [P]; T034 coverage verification last
 
 ---
 
@@ -195,6 +223,7 @@
 4. Phase 5 (US3) → full delete + downgrade_on_destroy
 5. Phase 6 (US4) → docs for list/inspect
 6. Phase 7 → register, errors, docs, coverage
+7. Phase 8 → identity validation (FR-001a), role-set lock (FR-005a), expired-but-listed pending lock (FR-008)
 
 ### Suggested MVP Scope
 

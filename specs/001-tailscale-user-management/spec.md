@@ -29,6 +29,12 @@ The user invite and membership lifecycle SHALL follow the same conceptual patter
 - Q: When an operation fails (e.g. backend unavailable), what should the administrator see? → A: Clear, actionable message indicating failure and, when possible, what to do (e.g. retry, check connectivity).
 - Q: Should the spec include explicit out-of-scope items? → A: Add a short "Out of scope" subsection with 3–5 bullets.
 
+### Session 2026-02-07
+
+- Q: How should the system handle an ensure-membership request for an invalid identity (e.g. malformed email)? → A: Return a clear error; not idempotent.
+- Q: How should the system represent invitations that have expired but are still listed by the backend? → A: Treat as pending until explicitly removed.
+- Q: Which roles MUST the system support for membership? → A: Only "member" and "admin"; other roles are out of scope.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Add or ensure membership (invite when needed) (Priority: P1)
@@ -43,8 +49,9 @@ An administrator wants to ensure an identity is in the tailnet (membership). If 
 
 1. **Given** the administrator has permission to manage users, **When** they ensure membership for a valid identity that is not in the tailnet, **Then** an invitation is created and sent (e.g. by email or link) and the invitee can join the tailnet upon acceptance.
 2. **Given** a membership exists in pending state (invitation sent), **When** the invitee accepts, **Then** the membership becomes active and the invitee is a member of the tailnet.
-3. **Given** the administrator ensures membership for an identity that is invalid or already in the tailnet (or already has a pending invite), **Then** the system responds with idempotent success and does not leave state inconsistent.
-4. **Given** the administrator removes membership for an identity that is still pending (invite not yet accepted), **When** the removal is applied, **Then** the invitation is cancelled (invitee can no longer join via that invite).
+3. **Given** the administrator ensures membership for an identity that is already in the tailnet (or already has a pending invite), **Then** the system responds with idempotent success and does not leave state inconsistent.
+4. **Given** the administrator ensures membership for an invalid identity (e.g. malformed email), **Then** the system MUST return a clear validation error and MUST NOT create or modify any membership; the operation is not idempotent.
+5. **Given** the administrator removes membership for an identity that is still pending (invite not yet accepted), **When** the removal is applied, **Then** the invitation is cancelled (invitee can no longer join via that invite).
 
 ---
 
@@ -99,9 +106,10 @@ An administrator needs to see all memberships in the tailnet and each membership
 ### Edge Cases
 
 - What happens when the administrator ensures membership for the same identity twice (e.g. duplicate ensure)? The system MUST treat the second operation as idempotent: no-op, return success, and leave state unchanged (one membership per identity).
+- What happens when the administrator ensures membership for an invalid identity (e.g. malformed email, unsupported identifier)? The system MUST validate the identity, return a clear error, and MUST NOT create or modify any membership. Repeating the call with the same invalid identity MUST again error (not idempotent).
 - What happens when the administrator disables or removes a user who has active sessions or devices? The system should revoke or disconnect access in a defined way so the user cannot continue using the tailnet.
 - How does the system behave when the administrator tries to remove or disable the last admin or the account owner? The system MUST prevent remove and disable in this case and return a clear message so the tailnet cannot be left without an administrator.
-- What happens when an invite expires or is cancelled before the invitee accepts? Invite expiry is defined by the system (e.g. fixed TTL). Administrators can cancel a pending invite (e.g. by removing membership). When expired or cancelled, the system reflects that the membership is no longer in pending state and does not allow joining via that invite; ensuring membership again for the same identity MUST be possible (new invite).
+- What happens when an invite expires or is cancelled before the invitee accepts? Invite expiry is defined by the system (e.g. fixed TTL). Administrators can cancel a pending invite (e.g. by removing membership). If a cancelled invite is no longer listed by the backend, the membership is treated as absent. If an expired invite is still listed by the backend, the system MUST treat the membership as `pending` until it is explicitly removed (by the administrator or by the backend); ensuring membership again for the same identity MUST be possible (no-op while still listed as pending; new invite once absent).
 - When membership is removed (destroyed) before the invitee accepts, the invitation MUST be cancelled so the invitee cannot join via that invite.
 - When two administrators act on the same user concurrently (e.g. one disables while another re-enables)? The system MUST apply last write wins: the latest successful action determines the user's state; no conflict error is required.
 - When an operation fails (e.g. backend unavailable, rate limit)? The system MUST present a clear, actionable message indicating failure and, when possible, what to do (e.g. retry, check connectivity).
@@ -110,14 +118,16 @@ An administrator needs to see all memberships in the tailnet and each membership
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST allow authorized administrators to ensure membership for an identity in the tailnet (with an optional role, default "member"); if the identity is not yet a member and has no pending invite, the system MUST send an invitation (e.g. by email or link).
+- **FR-001**: The system MUST allow authorized administrators to ensure membership for an identity in the tailnet (with an optional role from the supported set, default "member"); if the identity is not yet a member and has no pending invite, the system MUST send an invitation (e.g. by email or link).
+- **FR-001a**: The system MUST validate the supplied identity (e.g. well-formed email) before any state change. If the identity is invalid, the system MUST return a clear, actionable validation error and MUST NOT create or modify any membership; this error path is not idempotent (a subsequent call with the same invalid identity MUST again error).
 - **FR-002**: The system MUST allow authorized administrators to disable a user so that the user loses access to the tailnet until re-enabled.
 - **FR-003**: The system MUST allow authorized administrators to re-enable a previously disabled user so that the user regains access.
 - **FR-004**: The system MUST allow authorized administrators to remove membership for an identity: if the membership was pending (invite not yet accepted), the invitation MUST be cancelled; if the identity was a member, they MUST be removed and lose access.
-- **FR-005**: The system MUST allow authorized administrators to list memberships in the tailnet and see each membership’s state (e.g. pending, active, disabled) and role (e.g. member, admin).
-- **FR-006**: The system MUST treat duplicate or redundant operations in an idempotent way: ensure membership for same identity again (already member or pending), disable already disabled membership, or re-enable already active membership MUST be no-ops that return success and leave state unchanged.
+- **FR-005**: The system MUST allow authorized administrators to list memberships in the tailnet and see each membership’s state (pending, active, disabled) and role (`member` or `admin`).
+- **FR-005a**: The set of supported roles for membership MUST be exactly `{member, admin}`. Any other role value (including roles that may exist in the underlying backend) MUST be rejected with a clear validation error and is out of scope for this feature.
+- **FR-006**: The system MUST treat duplicate or redundant operations on a valid identity in an idempotent way: ensure membership for same identity again (already member or pending), disable already disabled membership, or re-enable already active membership MUST be no-ops that return success and leave state unchanged. Idempotency does NOT apply to validation errors (see FR-001a).
 - **FR-007**: The system MUST revoke or disconnect a user’s access when they are disabled or removed so they cannot continue using the tailnet.
-- **FR-008**: The system MUST support at least the following states for a membership: pending (invitation sent, not yet accepted), active, and disabled; and the absence of membership (removed / no longer a member).
+- **FR-008**: The system MUST support at least the following states for a membership: pending (invitation sent, not yet accepted), active, and disabled; and the absence of membership (removed / no longer a member). An invitation that has expired but is still listed by the backend MUST be reported as `pending` until it is explicitly removed.
 - **FR-009**: The system MUST prevent remove and disable of the last administrator (membership with admin role) or the account owner and MUST return a clear message when such an action is attempted.
 - **FR-010**: When multiple administrators change the same membership's state concurrently, the system MUST apply last write wins (the latest successful action determines state); no conflict error is required.
 - **FR-012**: When an operation fails (e.g. ensure membership, disable, remove, list), the system MUST present the administrator with a clear, actionable message indicating failure and, when possible, what to do (e.g. retry, check connectivity).
@@ -125,9 +135,9 @@ An administrator needs to see all memberships in the tailnet and each membership
 
 ### Key Entities
 
-- **Membership**: The primary entity linking an identity to the tailnet. One membership per identity. Attributes include identity (e.g. email), state (pending, active, disabled), and role. Role MUST be one of a defined set (e.g. "member", "admin") and default to "member"; it is used for last-admin protection and optional "downgrade on destroy". Pending = invitation sent, not yet accepted; active = member with access; disabled = member without access. When membership is removed, the identity is no longer in the tailnet (or invite is cancelled if still pending).
+- **Membership**: The primary entity linking an identity to the tailnet. One membership per identity. Attributes include identity (e.g. email), state (pending, active, disabled), and role. Role MUST be exactly one of `{member, admin}` and default to `member`; it is used for last-admin protection and optional "downgrade on destroy". Any other role value is rejected as a validation error (see FR-005a). The identity itself MUST be valid (e.g. well-formed email) or the membership operation is rejected (see FR-001a). Pending = invitation sent, not yet accepted (including invitations that have expired but are still listed by the backend); active = member with access; disabled = member without access. When membership is removed, the identity is no longer in the tailnet (or invite is cancelled if still pending).
 - **User**: The person (identity) who is or was part of the tailnet; represented by a membership when in the tailnet. A user may have zero or more devices once active.
-- **Invitation**: The pending state of a membership before the invitee accepts; not a separate resource from the administrator’s perspective. Expiry is system-defined (e.g. fixed TTL). Administrators can cancel by removing membership. Attributes include the invited identity, creation time, and validity (expired or cancelled). When accepted, the membership becomes active.
+- **Invitation**: The pending state of a membership before the invitee accepts; not a separate resource from the administrator’s perspective. Expiry is system-defined (e.g. fixed TTL). Administrators can cancel by removing membership. Attributes include the invited identity, creation time, and validity (expired or cancelled). While an invitation remains listed by the backend — even after its TTL has elapsed — the membership MUST be reported as `pending`; it transitions to absent only once the backend no longer lists it (cancelled or removed). When accepted, the membership becomes active.
 - **Administrator**: An actor with permission to ensure membership (add/invite), disable, re-enable, remove, and list memberships within the tailnet.
 
 ### Assumptions
@@ -144,6 +154,7 @@ An administrator needs to see all memberships in the tailnet and each membership
 - Custom per-invite expiry set by the administrator; expiry is system-defined only.
 - Defining or changing how the tailnet determines who is an "administrator" or "account owner"; this feature assumes those roles exist.
 - Auditing or history of membership changes (e.g. who invited whom, when); only current state is in scope.
+- Roles other than `member` and `admin` (e.g. owner, billing-admin, IT-admin, network-admin, auditor, or any custom roles supported by the underlying backend); only `{member, admin}` are in scope for this feature.
 
 ## Success Criteria *(mandatory)*
 

@@ -29,9 +29,10 @@ Removing the resource (destroy) transitions to “absent”: either invite delet
 
 ### Validation rules (from spec)
 
-- Role: allow only `member` and `admin` (or subset of Tailscale roles that includes these).
-- Last admin / account owner: do not allow destroy/disable that would remove or disable the last admin or the account owner; return clear error (FR-009).
-- Idempotency: create when already member or pending → no-op, success. Update role when unchanged → no-op. Delete when already absent → no-op.
+- **login_name**: MUST be a well-formed email. Validated client-side (schema `ValidateDiagFunc`) before any HTTP call. Invalid input returns a plan-time error and is **not** idempotent — repeating the call with the same invalid input MUST again error (FR-001a).
+- **role**: MUST be exactly one of `{member, admin}`. Any other value (e.g. `owner`, `it-admin`, `network-admin`, `auditor`, custom roles) is rejected at plan time even if the underlying Tailscale API would accept it (FR-005a). Other roles are out of scope for this feature.
+- **Last admin / account owner**: do not allow destroy/disable that would remove or disable the last admin or the account owner; return clear error (FR-009).
+- **Idempotency**: create when already member or pending → no-op, success. Update role when unchanged → no-op. Delete when already absent → no-op. Idempotency does NOT apply to validation errors above.
 
 ## Terraform resource schema (tailscale_tailnet_membership)
 
@@ -48,7 +49,7 @@ Resource ID in state: `tailnetID:login_name` (e.g. `tailnet_abc123:alice@example
 
 ## Mapping to Tailscale API
 
-- **Read**: List user invites for tailnet; list users for tailnet. Find by login_name (invite email or user login_name). Set state from invite vs user and user status (suspended).
+- **Read**: List user invites for tailnet; list users for tailnet. Find by login_name (invite email or user login_name). Set state from invite vs user and user status (suspended). Per FR-008, an invitation that is still listed by the backend MUST be reported as `state = "pending"` regardless of any expiry timestamp; it transitions to absent only once the backend no longer lists it.
 - **Create**: If no user and no invite for login_name → create user invite (POST user-invites) with role. Else → no-op (idempotent).
 - **Update**: If state is active or disabled and role changed → PATCH user role. If state is disabled and desired is active → restore. If state is active and desired is disabled → suspend. (Spec: disable/re-enable are first-class; role update is part of ensure.)
 - **Delete**: If pending → DELETE user invite. If active/disabled and not downgrade_on_destroy → DELETE user. If downgrade_on_destroy → set role to member or suspend (per option semantics).
