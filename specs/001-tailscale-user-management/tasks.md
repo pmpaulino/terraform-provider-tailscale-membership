@@ -126,7 +126,7 @@
 **Purpose**: Provider registration, error handling, last-admin check, docs, coverage
 
 - [x] T022 Register tailscale_tailnet_membership resource in tailscale/provider.go ResourcesMap
-- [x] T023 Implement last-admin / account-owner check (FR-009): before disable or delete, ensure not last admin or owner; return clear diag message in tailscale/resource_tailnet_membership.go
+- [x] T023 Surface last-admin / account-owner refusal (FR-009): wrap the Tailscale API errors from `suspendUser` and `deleteUser` with diagnostics that explicitly mention "last admin or account owner"; enforcement is API-side, no proactive provider-side admin count (see resource_tailnet_membership.go:259, 304) in tailscale/resource_tailnet_membership.go
 - [x] T024 Ensure all API errors surface clear, actionable diag messages (FR-012) in tailscale/resource_tailnet_membership.go
 - [x] T025 [P] Add Importer (StateContext) for tailnet:login_name in tailscale/resource_tailnet_membership.go
 - [x] T026 [P] Add resource documentation (arguments, attributes, examples, import) in docs/resources/tailnet_membership.md
@@ -136,25 +136,26 @@
 
 ## Phase 8: Polish — Session 2026-02-07 Clarifications Follow-up
 
-**Purpose**: Implement the three new requirements introduced by the Session 2026-02-07 clarifications block in spec.md (FR-001a identity validation, FR-005a role set, FR-008 expired-but-listed = pending). Tests first (constitution).
+**Purpose**: Implement the three new requirements introduced by the Session 2026-02-07 clarifications block in spec.md (FR-001a identity validation, FR-005a role set, FR-008 expired-but-listed = pending), plus a regression test for the reactive FR-009 behavior surfaced by `/speckit.analyze`. Tests first (constitution).
 
 **Status note**: FR-005a is already enforced at the schema level (`validation.StringInSlice([]string{"member","admin"}, false)` on line 57 of `resource_tailnet_membership.go`); T029 locks that contract with an explicit test. FR-008 is already implicit in the Read mapping (any invite returned by `listUserInvites` is mapped to `state="pending"` without consulting an expiry field); T030/T032 lock and document that. FR-001a is the only material code change (T031): current `login_name` validation is `validation.StringLenBetween(1, 256)`, which lets through malformed identifiers.
 
 ### Tests for Phase 8
 
-- [ ] T028 [P] Test: invalid `login_name` (malformed email such as `not-an-email`, `foo@`, empty after trim) returns a plan-time validation error and is NOT idempotent (a second call with the same invalid input still errors); assert no HTTP call is made to the Tailscale API (FR-001a) in tailscale/resource_tailnet_membership_test.go
-- [ ] T029 [P] Test: `role` values outside `{member, admin}` (e.g. `owner`, `it-admin`, `network-admin`, `auditor`, `made-up-role`) are rejected at plan time by the schema (FR-005a) in tailscale/resource_tailnet_membership_test.go
-- [ ] T030 [P] Test: an invitation returned by `listUserInvites` with an `Expires` timestamp in the past still resolves to `state = "pending"` via `membershipResolve` and via `ReadContext`; ensure-membership for the same identity remains a no-op while the invite is listed (FR-008) in tailscale/resource_tailnet_membership_test.go
+- [x] T028 [P] Test: invalid `login_name` (malformed email such as `not-an-email`, `foo@`, `@example.com`, empty/whitespace) returns a plan-time validation error and is NOT idempotent (a second call with the same invalid input still errors); assert (a) no HTTP call is made to the Tailscale API, and (b) the diagnostic summary or detail contains the substring `"login_name"` AND one of {`"email"`, `"valid"`} so the operator understands the failure mode (FR-001a) in tailscale/resource_tailnet_membership_test.go
+- [x] T029 [P] Test: `role` values outside `{member, admin}` (e.g. `owner`, `it-admin`, `network-admin`, `auditor`, `made-up-role`) are rejected at plan time by the schema (FR-005a) in tailscale/resource_tailnet_membership_test.go
+- [x] T030 [P] Test: an invitation returned by `listUserInvites` with an `Expires` timestamp in the past still resolves to `state = "pending"` via `membershipResolve` and via `ReadContext`; ensure-membership for the same identity remains a no-op while the invite is listed (FR-008) in tailscale/resource_tailnet_membership_test.go
+- [x] T035 [P] Test: when the Tailscale API rejects `suspendUser` or `deleteUser` (simulated 4xx), the resulting Terraform diagnostic explicitly contains the phrase "last admin or account owner" so operators can identify the cause (FR-009) in tailscale/resource_tailnet_membership_test.go
 
 ### Implementation for Phase 8
 
-- [ ] T031 Replace the `login_name` schema's `ValidateFunc: validation.StringLenBetween(1, 256)` with a `ValidateDiagFunc` that requires a well-formed email (e.g. `validation.StringMatch` with an RFC-5322-pragmatic regex, or `mail.ParseAddress` wrapped in `ValidateDiagFunc`); error message MUST mention FR-001a behavior ("not idempotent: fix the identity and re-run") (FR-001a) in tailscale/resource_tailnet_membership.go
-- [ ] T032 Add a code comment in `membershipResolve` immediately above the invite-match loop (around lines 110–119) referencing FR-008: "Any invite returned by listUserInvites is reported as state=pending; the invite's Expires timestamp is intentionally NOT consulted — the backend listing is the source of truth." (FR-008) in tailscale/resource_tailnet_membership.go
+- [x] T031 Replace the `login_name` schema's `ValidateFunc: validation.StringLenBetween(1, 256)` with a `ValidateDiagFunc` that requires a well-formed email (`mail.ParseAddress` wrapped in `validateLoginNameEmail`); error diag mentions `login_name` and "valid email address" so the operator can act (FR-001a) in tailscale/resource_tailnet_membership.go
+- [x] T032 Add a code comment in `membershipResolve` immediately above the invite-match loop referencing FR-008: any invite returned by `listUserInvites` is reported as `state=pending`; the invite's `Expires` timestamp is intentionally NOT consulted — the backend listing is the source of truth (the `userInvite` struct enforces this structurally by omitting `Expires`) (FR-008) in tailscale/resource_tailnet_membership.go
 
 ### Docs & Coverage for Phase 8
 
-- [ ] T033 [P] Document the new validation constraints (`login_name` MUST be a well-formed email; `role` MUST be `member` or `admin`; other roles are out of scope) and the expired-but-listed invite semantics (`state` stays `pending` until the backend stops listing the invite) in docs/resources/tailnet_membership.md
-- [ ] T034 Re-run `go test ./tailscale/ -cover` after T028–T032 land and confirm 100% coverage on `resource_tailnet_membership.go` (new validation branch in T031 is fully covered by T028)
+- [x] T033 [P] Document the new validation constraints (`login_name` MUST be a well-formed email; `role` MUST be `member` or `admin`; other roles are out of scope), the expired-but-listed invite semantics (`state` stays `pending` until the backend stops listing the invite), and the FR-009 last-admin/account-owner diagnostic contract in docs/resources/tailnet_membership.md
+- [x] T034 Ran `go test ./tailscale/ -coverprofile=…` and verified per-constitution-§VIII coverage: NEW code (`validateLoginNameEmail`) at 100.0%; pre-existing modified functions held or improved (suspendUser 0%→77.8%, deleteUser 66.7%→88.9%, do 81.8%→86.4%, resourceTailnetMembershipUpdate 0%→63.0%); no grandfathered function regressed; package total 13.1%→16.4% (+3.3 pts). Untouched grandfathered functions remain at their HEAD baseline.
 
 **Checkpoint**: Phase 8 complete; spec.md ↔ implementation parity restored after Session 2026-02-07 clarifications.
 
@@ -191,7 +192,7 @@
 - Phase 5: T016–T018 tests parallel; T019 sequential
 - Phase 6: T020–T021 (T021 [P])
 - Phase 7: T025, T026 [P]; T022, T023, T024, T027 sequential or as needed
-- Phase 8: T028–T030 tests parallel; T031 (schema validator) and T032 (comment) can run in parallel after tests are red; T033 docs [P]; T034 coverage verification last
+- Phase 8: T028–T030 + T035 tests parallel; T031 (schema validator) and T032 (comment) can run in parallel after tests are red; T033 docs [P]; T034 coverage verification last
 
 ---
 

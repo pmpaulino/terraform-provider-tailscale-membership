@@ -88,3 +88,30 @@
 **Decision**: On API errors (4xx/5xx, not found, rate limit), return Terraform diag errors with a clear, actionable message (e.g. “Failed to create user invite: …; check that your token has UserInvites scope and that the identity is valid.”). Use existing `diagnosticsError`-style helpers used elsewhere in the provider.
 
 **Rationale**: Spec FR-012 requires clear, actionable failure messages.
+
+---
+
+## 8. Access revocation on disable/remove (FR-007)
+
+**Decision**: FR-007 ("revoke or disconnect a user's access when they are disabled or removed") is satisfied by the underlying Tailscale Control API. The provider does NOT implement any access-revocation mechanism of its own:
+
+- **Disable** → `POST /users/{userId}/suspend` causes Tailscale to invalidate the user's auth keys and disconnect their devices.
+- **Remove** (active user) → `POST /users/{userId}/delete` removes the user record; all tokens become invalid.
+- **Remove** (pending invite) → `DELETE /user-invites/{userInviteId}` invalidates the invite link.
+
+**Rationale**: Tailscale's Control API is authoritative for session/device lifecycle; duplicating that in the provider would be both wrong (we can't revoke server-side sessions from a client) and a source of drift.
+
+**Implication for tests**: FR-007 is tested implicitly by asserting the correct API endpoint is invoked in T011/T015 (suspend), T012/T015 (restore), T016/T019 (delete user), and T007/T019 (delete invite). No additional FR-007-specific test is needed.
+
+---
+
+## 9. Concurrent administrator changes (FR-010)
+
+**Decision**: FR-010 ("last write wins on concurrent ops; no conflict error") is satisfied for free by two layered guarantees:
+
+1. **Terraform serializes Create/Update/Delete** for the same resource within a single workspace (state lock + sequential `apply`).
+2. **The Tailscale Control REST API is non-locking** for user-state mutations: each `PATCH role`, `POST suspend`, `POST restore`, `POST delete` accepts the request unconditionally and the most recent successful call wins.
+
+**Rationale**: No provider-side locking, no optimistic-concurrency tokens (e.g., `If-Match`), and no conflict-detection logic are required. Cross-workspace or cross-operator races resolve at the API layer with last-write-wins semantics.
+
+**Implication for tests**: FR-010 has no provider-side behavior to test in isolation. A documented decision in this section is the artifact that satisfies the spec MUST.
