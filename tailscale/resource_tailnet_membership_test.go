@@ -18,7 +18,7 @@ import (
 )
 
 const testTailnetMembershipCreate = `
-resource "tailscale_tailnet_membership" "alice" {
+resource "tailscale_membership_tailnet_membership" "alice" {
   login_name = "alice@example.com"
   role       = "member"
 }
@@ -45,7 +45,7 @@ func TestResourceTailnetMembership_Create_EnsureMembershipCreatesInvite(t *testi
 				},
 				Config: testTailnetMembershipCreate,
 				Check: func(s *terraform.State) error {
-					rs, ok := s.RootModule().Resources["tailscale_tailnet_membership.alice"]
+					rs, ok := s.RootModule().Resources["tailscale_membership_tailnet_membership.alice"]
 					if !ok {
 						return nil
 					}
@@ -87,7 +87,7 @@ func TestResourceTailnetMembership_Create_IdempotentWhenUserExists(t *testing.T)
 				},
 				Config: testTailnetMembershipCreate,
 				Check: func(s *terraform.State) error {
-					rs, ok := s.RootModule().Resources["tailscale_tailnet_membership.alice"]
+					rs, ok := s.RootModule().Resources["tailscale_membership_tailnet_membership.alice"]
 					if !ok {
 						return nil
 					}
@@ -120,7 +120,7 @@ func TestResourceTailnetMembership_Read_StatePendingWhenInviteExists(t *testing.
 				},
 				Config: testTailnetMembershipCreate,
 				Check: func(s *terraform.State) error {
-					rs := s.RootModule().Resources["tailscale_tailnet_membership.alice"]
+					rs := s.RootModule().Resources["tailscale_membership_tailnet_membership.alice"]
 					if rs.Primary.Attributes["state"] != "pending" {
 						return nil
 					}
@@ -148,7 +148,7 @@ func TestResourceTailnetMembership_Read_StateActiveWhenUserExists(t *testing.T) 
 				},
 				Config: testTailnetMembershipCreate,
 				Check: func(s *terraform.State) error {
-					rs := s.RootModule().Resources["tailscale_tailnet_membership.alice"]
+					rs := s.RootModule().Resources["tailscale_membership_tailnet_membership.alice"]
 					if rs.Primary.Attributes["state"] != "active" {
 						return nil
 					}
@@ -279,14 +279,14 @@ func TestResourceTailnetMembership_Update_SuspendAndRestore(t *testing.T) {
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
 				},
 				Config: `
-resource "tailscale_tailnet_membership" "alice" {
+resource "tailscale_membership_tailnet_membership" "alice" {
   login_name = "alice@example.com"
   role       = "member"
   suspended  = true
 }
 `,
 				Check: func(s *terraform.State) error {
-					rs := s.RootModule().Resources["tailscale_tailnet_membership.alice"]
+					rs := s.RootModule().Resources["tailscale_membership_tailnet_membership.alice"]
 					if rs.Primary.Attributes["state"] != "disabled" {
 						return nil
 					}
@@ -313,7 +313,7 @@ func TestResourceTailnetMembership_Delete_DowngradeOnDestroy(t *testing.T) {
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
 				},
 				Config: `
-resource "tailscale_tailnet_membership" "alice" {
+resource "tailscale_membership_tailnet_membership" "alice" {
   login_name             = "alice@example.com"
   role                   = "admin"
   downgrade_on_destroy   = true
@@ -331,7 +331,7 @@ resource "tailscale_tailnet_membership" "alice" {
 				},
 				Destroy: true,
 				Config: `
-resource "tailscale_tailnet_membership" "alice" {
+resource "tailscale_membership_tailnet_membership" "alice" {
   login_name             = "alice@example.com"
   role                   = "admin"
   downgrade_on_destroy   = true
@@ -359,7 +359,7 @@ func TestResourceTailnetMembership_Import(t *testing.T) {
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
 				},
 				Config:        testTailnetMembershipCreate,
-				ResourceName: "tailscale_tailnet_membership.alice",
+				ResourceName: "tailscale_membership_tailnet_membership.alice",
 				ImportState:  true,
 				ImportStateId: "example.com:alice@example.com", // tailnet:login_name
 				ImportStateCheck: func(st []*terraform.InstanceState) error {
@@ -479,7 +479,7 @@ func TestResourceTailnetMembership_LoginName_RejectsInvalidEmail_FR001a(t *testi
 		Steps: []resource.TestStep{
 			{
 				Config: `
-resource "tailscale_tailnet_membership" "bad" {
+resource "tailscale_membership_tailnet_membership" "bad" {
   login_name = "not-an-email"
   role       = "member"
 }
@@ -558,7 +558,7 @@ func TestResourceTailnetMembership_Read_ExpiredButListedInviteIsPending_FR008(t 
 				},
 				Config: testTailnetMembershipCreate,
 				Check: func(s *terraform.State) error {
-					rs, ok := s.RootModule().Resources["tailscale_tailnet_membership.alice"]
+					rs, ok := s.RootModule().Resources["tailscale_membership_tailnet_membership.alice"]
 					if !ok {
 						t.Fatalf("resource not in state")
 					}
@@ -607,7 +607,7 @@ func TestResourceTailnetMembership_LastAdminRefusal_DiagMentionsCause_FR009(t *t
 						testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
 					},
 					Config: `
-resource "tailscale_tailnet_membership" "alice" {
+resource "tailscale_membership_tailnet_membership" "alice" {
   login_name = "alice@example.com"
   role       = "admin"
 }
@@ -629,7 +629,7 @@ resource "tailscale_tailnet_membership" "alice" {
 						}
 					},
 					Config: `
-resource "tailscale_tailnet_membership" "alice" {
+resource "tailscale_membership_tailnet_membership" "alice" {
   login_name = "alice@example.com"
   role       = "admin"
   suspended  = true

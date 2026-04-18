@@ -32,7 +32,7 @@ type membershipResolveResult struct {
 	User     *tailscale.User // when active or disabled
 }
 
-// resourceTailnetMembership returns the tailscale_tailnet_membership resource schema and CRUD.
+// resourceTailnetMembership returns the tailscale_membership_tailnet_membership resource schema and CRUD.
 func resourceTailnetMembership() *schema.Resource {
 	return &schema.Resource{
 		Description:   "The tailnet_membership resource manages a user's membership in a tailnet. Creating the resource ensures the identity is in the tailnet (creates an invite if needed); destroying it cancels a pending invite or removes the user. Supports suspend/restore and optional downgrade on destroy.",

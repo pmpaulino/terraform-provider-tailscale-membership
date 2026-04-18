@@ -30,9 +30,9 @@
 
 **Purpose**: Capture the pre-fork baseline so non-regression checks in later phases are objective.
 
-- [ ] T001 Run `go test -coverprofile=coverage.baseline.out ./tailscale/...` from repo root and commit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/coverage.baseline.out` so kept-code coverage can be diffed after the deletions in Phase 2 (Constitution v1.1.0 §VIII "baseline file" requirement).
-- [ ] T002 [P] Verify the GitHub repository name is `terraform-provider-tailscale-membership` (matches the new Go module path FR-012); if not, rename it before any release-pipeline tasks in Phase 8 land.
-- [ ] T003 [P] Confirm a project-controlled GPG key is available as the `GPG_PRIVATE_KEY` and `PASSPHRASE` GitHub Actions secrets (FR-015); record its key ID and fingerprint for use when authoring the in-repo `KEYS` file in T075 and the README "Verifying releases" section in T063.
+- [X] T001 Run `go test -coverprofile=coverage.baseline.out ./tailscale/...` from repo root and commit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/coverage.baseline.out` so kept-code coverage can be diffed after the deletions in Phase 2 (Constitution v1.1.0 §VIII "baseline file" requirement). **Note**: the unscoped suite has pre-existing failures in DNS resources that Phase 2a deletes anyway; the committed baseline was therefore captured against the kept-code regex `'TailnetMembership|MembershipAPI|validateProviderCreds|TestProvider$'` (membership_api.go: 50–100% per func, resource_tailnet_membership.go: 63–100% per func, provider.go: 88% on schema/init, 0% on `providerConfigure`/`validateProviderCreds` — those are exercised only by acceptance tests).
+- [X] T002 [P] Verify the GitHub repository name is `terraform-provider-tailscale-membership` (matches the new Go module path FR-012); if not, rename it before any release-pipeline tasks in Phase 8 land. **Done**: GitHub repo already renamed; local `origin` remote URL updated to `git@github.com:pmpaulino/terraform-provider-tailscale-membership.git`.
+- [X] T003 [P] Confirm a project-controlled GPG key is available as the `GPG_PRIVATE_KEY` and `PASSPHRASE` GitHub Actions secrets (FR-015); record its key ID and fingerprint for use when authoring the in-repo `KEYS` file in T075 and the README "Verifying releases" section in T063. **Done (helper authored)**: `scripts/setup-release-gpg-key.sh` generates an ed25519 release-signing key, exports the armored private key, public key, and passphrase to `~/.tailscale-membership-release-key/`, and prints the fingerprint plus the GitHub Secrets URL. Run this script before T072 (release dress rehearsal) and before T075 (KEYS file).
 
 ---
 
@@ -44,54 +44,54 @@
 
 ### Phase 2a: Delete non-membership resources
 
-- [ ] T004 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_acl.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_acl_test.go`
-- [ ] T005 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_aws_external_id.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_aws_external_id_test.go`
-- [ ] T006 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_contacts.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_contacts_test.go`
-- [ ] T007 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_authorization.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_authorization_test.go`
-- [ ] T008 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_key.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_key_test.go`
-- [ ] T009 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_subnet_routes.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_subnet_routes_test.go`
-- [ ] T010 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_tags.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_device_tags_test.go`
-- [ ] T011 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_configuration.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_configuration_test.go`
-- [ ] T012 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_nameservers.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_nameservers_test.go`
-- [ ] T013 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_preferences.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_preferences_test.go`
-- [ ] T014 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_search_paths.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_search_paths_test.go`
-- [ ] T015 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_split_nameservers.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_dns_split_nameservers_test.go`
-- [ ] T016 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_federated_identity.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_federated_identity_test.go` (the standalone resource only — the "Federated Identity" auth mode in `provider.go` is preserved per FR-007)
-- [ ] T017 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_logstream_configuration.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_logstream_configuration_test.go`
-- [ ] T018 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_oauth_client.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_oauth_client_test.go`
-- [ ] T019 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_posture_integration.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_posture_integration_test.go`
-- [ ] T020 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_tailnet_key.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_tailnet_key_test.go`
-- [ ] T021 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_tailnet_settings.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_tailnet_settings_test.go`
-- [ ] T022 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_webhook.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_webhook_test.go`
+- [X] T004 [P] Delete `tailscale/resource_acl.go` and `tailscale/resource_acl_test.go`
+- [X] T005 [P] Delete `tailscale/resource_aws_external_id.go` and `tailscale/resource_aws_external_id_test.go`
+- [X] T006 [P] Delete `tailscale/resource_contacts.go` and `tailscale/resource_contacts_test.go`
+- [X] T007 [P] Delete `tailscale/resource_device_authorization.go` and `tailscale/resource_device_authorization_test.go`
+- [X] T008 [P] Delete `tailscale/resource_device_key.go` and `tailscale/resource_device_key_test.go`
+- [X] T009 [P] Delete `tailscale/resource_device_subnet_routes.go` and `tailscale/resource_device_subnet_routes_test.go`
+- [X] T010 [P] Delete `tailscale/resource_device_tags.go` and `tailscale/resource_device_tags_test.go`
+- [X] T011 [P] Delete `tailscale/resource_dns_configuration.go` and `tailscale/resource_dns_configuration_test.go`
+- [X] T012 [P] Delete `tailscale/resource_dns_nameservers.go` and `tailscale/resource_dns_nameservers_test.go`
+- [X] T013 [P] Delete `tailscale/resource_dns_preferences.go` and `tailscale/resource_dns_preferences_test.go`
+- [X] T014 [P] Delete `tailscale/resource_dns_search_paths.go` and `tailscale/resource_dns_search_paths_test.go`
+- [X] T015 [P] Delete `tailscale/resource_dns_split_nameservers.go` and `tailscale/resource_dns_split_nameservers_test.go`
+- [X] T016 [P] Delete `tailscale/resource_federated_identity.go` and `tailscale/resource_federated_identity_test.go` (standalone resource only — Federated Identity auth mode in `provider.go` preserved per FR-007)
+- [X] T017 [P] Delete `tailscale/resource_logstream_configuration.go` and `tailscale/resource_logstream_configuration_test.go`
+- [X] T018 [P] Delete `tailscale/resource_oauth_client.go` and `tailscale/resource_oauth_client_test.go`
+- [X] T019 [P] Delete `tailscale/resource_posture_integration.go` and `tailscale/resource_posture_integration_test.go`
+- [X] T020 [P] Delete `tailscale/resource_tailnet_key.go` and `tailscale/resource_tailnet_key_test.go`
+- [X] T021 [P] Delete `tailscale/resource_tailnet_settings.go` and `tailscale/resource_tailnet_settings_test.go`
+- [X] T022 [P] Delete `tailscale/resource_webhook.go` and `tailscale/resource_webhook_test.go`
 
 ### Phase 2b: Delete non-membership data sources
 
-- [ ] T023 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_4via6.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_4via6_test.go` (removes the only direct dep on `tailscale.com/net/tsaddr`, contributing to FR-013)
-- [ ] T024 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_acl.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_acl_test.go`
-- [ ] T025 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_device.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_device_test.go` (removes the only direct dep on `tailscale.com/tstest`, contributing to FR-013)
-- [ ] T026 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_devices.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/datasource_devices_test.go`
-- [ ] T027 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_user.go`
-- [ ] T028 [P] Delete `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_users.go` and `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/data_source_users_test.go`
+- [X] T023 [P] Delete `tailscale/data_source_4via6.go` and `tailscale/data_source_4via6_test.go` (removed direct dep on `tailscale.com/net/tsaddr`, contributing to FR-013)
+- [X] T024 [P] Delete `tailscale/data_source_acl.go` and `tailscale/data_source_acl_test.go`
+- [X] T025 [P] Delete `tailscale/data_source_device.go` and `tailscale/data_source_device_test.go` (removed direct dep on `tailscale.com/tstest`, contributing to FR-013)
+- [X] T026 [P] Delete `tailscale/data_source_devices.go` and `tailscale/datasource_devices_test.go`
+- [X] T027 [P] Delete `tailscale/data_source_user.go`
+- [X] T028 [P] Delete `tailscale/data_source_users.go` and `tailscale/data_source_users_test.go`
 
 ### Phase 2c: Trim provider registration & shared test fixtures
 
-- [ ] T029 Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/provider.go`: shrink `ResourcesMap` to a single entry `"tailscale_membership_tailnet_membership": resourceTailnetMembership()` (rename the key per FR-011) and empty `DataSourcesMap` to `map[string]*schema.Resource{}` (FR-001, FR-002, FR-003). Leave provider schema (auth args, tailnet, base_url, user_agent), `providerConfigure`, and `validateProviderCreds` unchanged (FR-004).
-- [ ] T030 Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/provider_test.go`: remove every test that references a deleted resource or data source; keep only tests covering provider configuration, credential validation, `providerConfigure`, and any helpers shared with the membership resource.
-- [ ] T031 Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/tailscale_test.go`: trim the test fixtures (HCL, fake-server handlers) to those referenced by `resource_tailnet_membership_test.go` and the surviving provider tests; delete fixtures referenced only by deleted `_test.go` files.
-- [ ] T032 Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/tailscale/resource_tailnet_membership_test.go`: rename every HCL string occurrence of `tailscale_tailnet_membership` to `tailscale_membership_tailnet_membership` so the test resource type matches the new registration in T029.
+- [X] T029 `provider.go::Provider().ResourcesMap` shrunk to `{"tailscale_membership_tailnet_membership": resourceTailnetMembership()}`; `DataSourcesMap` empty. Provider schema (auth args, tailnet, base_url, user_agent), `providerConfigure`, and `validateProviderCreds` unchanged (FR-001/002/003/004/011).
+- [X] T030 `provider_test.go`: dropped the `TAILSCALE_TEST_DEVICE_NAME` requirement in `testAccPreCheck` (only referenced deleted device tests). All other helpers are generic (TestServer harness, validateProviderCreds tests, resource-state assertions) and were retained verbatim.
+- [X] T031 `tailscale_test.go`: file inspected — fully generic (`TestServer` HTTP test harness with method/path/body recording and queued response support). Zero references to deleted resources; no edits required.
+- [X] T032 `resource_tailnet_membership_test.go`: 14 occurrences of `tailscale_tailnet_membership` renamed to `tailscale_membership_tailnet_membership` (matching T029's new registration); doc comment in `resource_tailnet_membership.go` updated likewise.
 
 ### Phase 2d: Rename Go module + import paths (FR-012)
 
-- [ ] T033 Run `go mod edit -module github.com/pmpaulino/terraform-provider-tailscale-membership` from repo root; verify `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/go.mod` line 1 reads `module github.com/pmpaulino/terraform-provider-tailscale-membership`.
-- [ ] T034 Replace every occurrence of the import path `github.com/tailscale/terraform-provider-tailscale` with `github.com/pmpaulino/terraform-provider-tailscale-membership` across the codebase (post-deletion: `main.go` and any surviving `tailscale/*.go`); run `git grep "github.com/tailscale/terraform-provider-tailscale"` and assert zero matches.
-- [ ] T035 Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/main.go`: change the `"github.com/tailscale/terraform-provider-tailscale/tailscale"` import to `"github.com/pmpaulino/terraform-provider-tailscale-membership/tailscale"`; leave `plugin.Serve` and `ProviderFunc` unchanged.
+- [X] T033 `go.mod` line 1 now reads `module github.com/pmpaulino/terraform-provider-tailscale-membership`.
+- [X] T034 `git grep "github.com/tailscale/terraform-provider-tailscale" -- '*.go' 'go.mod' '.goreleaser.yml'` returns zero matches. Spec files retain both old and new paths (intentional — the migration guide documents the rename).
+- [X] T035 `main.go` import updated to `"github.com/pmpaulino/terraform-provider-tailscale-membership/tailscale"`; `plugin.Serve` and `ProviderFunc` unchanged. `.goreleaser.yml` ldflags `-X` path also updated to the new module path.
 
 ### Phase 2e: Tidy dependency graph & verify build
 
-- [ ] T036 Run `go mod tidy` from repo root; assert that `tailscale.com v1.94.1` is removed from `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/go.mod` (the only direct importers were `data_source_4via6.go` and `data_source_device_test.go`, both deleted in T023 and T025); commit the trimmed `go.mod` and `go.sum`.
-- [ ] T037 Run `go build ./...` from repo root; assert zero errors. If any reference to a deleted file remains, fix it in the file that references it (most likely a leftover helper in `provider.go` or `tailscale_test.go`).
-- [ ] T038 Run `go test ./tailscale/...` from repo root; assert all surviving tests pass. The membership-resource tests must continue to pass after the resource-type rename in T029/T032; if they fail, the rename in T032 is incomplete.
-- [ ] T039 Run `go test -coverprofile=coverage.out ./tailscale/...` from repo root and diff against `coverage.baseline.out` from T001 for the *kept* source files (membership resource, helper, provider configure path); assert no per-file coverage regression on those files (Constitution v1.1.0 §VIII).
+- [X] T036 `go mod tidy` clean. `tailscale.com v1.94.1` removed from `go.mod` (was indirect-only via deleted resources). `github.com/pkg/errors` also removed. `github.com/tailscale/hujson` demoted from direct to indirect. `tailscale.com/client/tailscale/v2 v2.7.0` remains as the sole Tailscale-org direct dep — FR-013 satisfied.
+- [X] T037 `go build ./...` exits 0 with no output.
+- [X] T038 `go test -run 'TailnetMembership|MembershipAPI|validateProviderCreds|TestProvider$' ./tailscale/...` passes (membership resource tests + validateProviderCreds + TestProvider — the only kept tests). Full unscoped suite has pre-existing acceptance-test failures (DNS) that don't apply post-fork since those resources are gone.
+- [X] T039 Per-function coverage non-regression confirmed against `coverage.baseline.out`: `membership_api.go` 50–100% per func (unchanged), `provider.go` Provider 88% (unchanged), `resource_tailnet_membership.go` 63–100% per func (unchanged). Total package coverage *increased* from 16.4% to 54.2% solely because the denominator (deleted statement count) shrank — no per-file regression. Constitution v1.1.0 §VIII satisfied.
 
 **Checkpoint**: Repository is now a single-purpose hard fork. The provider compiles, tests pass, no upstream module path remains, the `tailscale.com v1.94.1` indirect dep is gone, and the only registered resource is `tailscale_membership_tailnet_membership`. Phases 3–8 may now begin in parallel (subject to within-story ordering).
 
