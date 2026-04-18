@@ -42,6 +42,16 @@ func (m *membershipAPIClient) baseURL() *url.URL {
 }
 
 func (m *membershipAPIClient) do(ctx context.Context, method, rawURL string, body any) (*http.Response, error) {
+	// Trigger the v2 client's lazy init so that:
+	//   - For OAuth / Federated Identity (m.Client.Auth != nil), m.Client.HTTP is
+	//     replaced with the auth-decorated *http.Client returned by
+	//     m.Client.Auth.HTTPClient(...) and m.Client.APIKey is zeroed.
+	//   - For API-key mode (m.Client.Auth == nil), m.Client.HTTP is initialised to
+	//     a plain *http.Client (1m timeout) and m.Client.APIKey is preserved.
+	// Any v2 resource accessor triggers init via sync.Once; Users() is the
+	// closest to the membership domain. See specs/002-standalone-membership-provider/research.md §R1.
+	_ = m.Client.Users()
+
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
@@ -63,14 +73,13 @@ func (m *membershipAPIClient) do(ctx context.Context, method, rawURL string, bod
 	if m.Client.UserAgent != "" {
 		req.Header.Set("User-Agent", m.Client.UserAgent)
 	}
+	// API-key mode: the v2 client adds Basic auth in its own buildRequest, but
+	// this helper builds requests directly, so we set it here. After init() this
+	// branch only fires when no Auth was configured (Auth != nil zeroes APIKey).
 	if m.Client.APIKey != "" {
 		req.SetBasicAuth(m.Client.APIKey, "")
 	}
-	httpClient := m.Client.HTTP
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-	return httpClient.Do(req)
+	return m.Client.HTTP.Do(req)
 }
 
 // listUserInvites returns all open user invites for the tailnet.

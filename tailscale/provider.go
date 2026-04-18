@@ -185,6 +185,12 @@ func validateProviderCreds(apiKey string, oauthClientID string, oauthClientSecre
 		return diag.Errorf("tailscale provider credentials are conflicting - `api_key` conflicts with 'oauth_client_id', 'oauth_client_secret' and 'identity_token'")
 	} else if apiKey == "" && oauthClientID == "" {
 		return diag.Errorf("tailscale provider argument 'oauth_client_id' is empty")
+	} else if oauthClientID != "" && oauthClientSecret != "" && idToken != "" {
+		// FR-008: 'oauth_client_secret' and 'identity_token' select two
+		// different auth modes (OAuth client credentials vs. Federated
+		// Identity); setting both is ambiguous and MUST be rejected
+		// rather than silently picking one.
+		return diag.Errorf("tailscale provider credentials are conflicting - 'oauth_client_secret' and 'identity_token' are mutually exclusive (set exactly one alongside 'oauth_client_id')")
 	} else if oauthClientID != "" && (oauthClientSecret == "" && idToken == "") {
 		return diag.Errorf("one of tailscale provider arguments 'oauth_client_secret' or 'identity_token' are mandatory with 'oauth_client_id'")
 	}
