@@ -6,8 +6,10 @@ package tailscale
 import (
 	"context"
 	"fmt"
+	"net/mail"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -43,11 +45,11 @@ func resourceTailnetMembership() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"login_name": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "The identity (email) for the membership. Used to match an invite or user in the tailnet.",
-				ValidateFunc: validation.StringLenBetween(1, 256),
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				Description:      "The identity (email) for the membership. Used to match an invite or user in the tailnet. MUST be a well-formed email address (e.g., alice@example.com).",
+				ValidateDiagFunc: validateLoginNameEmail,
 			},
 			"role": {
 				Type:         schema.TypeString,
@@ -87,6 +89,53 @@ func resourceTailnetMembership() *schema.Resource {
 	}
 }
 
+// validateLoginNameEmail enforces FR-001a: login_name MUST be a well-formed email
+// address. The error path is non-idempotent — repeated invalid input keeps erroring
+// and no HTTP call is made because Terraform fails the plan before reaching CRUD.
+// Display-name forms ("Alice <alice@example.com>") are rejected: this is an identity
+// field, not a mailbox header.
+func validateLoginNameEmail(v interface{}, p cty.Path) diag.Diagnostics {
+	s, ok := v.(string)
+	if !ok {
+		return diag.Diagnostics{{Severity: diag.Error, Summary: "login_name must be a string", AttributePath: p}}
+	}
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "login_name must be a valid email address",
+			Detail:        "login_name is empty; provide a well-formed email address (e.g., alice@example.com)",
+			AttributePath: p,
+		}}
+	}
+	if !strings.Contains(trimmed, "@") {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "login_name must be a valid email address",
+			Detail:        fmt.Sprintf("login_name=%q is missing '@'; provide a well-formed email address (e.g., alice@example.com)", s),
+			AttributePath: p,
+		}}
+	}
+	addr, err := mail.ParseAddress(trimmed)
+	if err != nil {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "login_name is not a valid email address",
+			Detail:        fmt.Sprintf("login_name=%q: %s", s, err.Error()),
+			AttributePath: p,
+		}}
+	}
+	if addr.Address != trimmed {
+		return diag.Diagnostics{{
+			Severity:      diag.Error,
+			Summary:       "login_name must be a bare email address",
+			Detail:        fmt.Sprintf("login_name=%q must contain only the email address (no display name)", s),
+			AttributePath: p,
+		}}
+	}
+	return nil
+}
+
 // membershipResolve lists user invites and users for the tailnet and finds the membership by login_name (email).
 // It triggers client init by calling Users().List first. Returns nil if not found.
 func membershipResolve(ctx context.Context, client *tailscale.Client, loginName string) (*membershipResolveResult, diag.Diagnostics) {
@@ -108,6 +157,14 @@ func membershipResolve(ctx context.Context, client *tailscale.Client, loginName 
 	}
 
 	// Match invite by email (case-insensitive).
+	//
+	// FR-008 invariant: if the backend lists an invitation, this resolver MUST
+	// classify it as `pending` regardless of any expiry timestamp. The userInvite
+	// struct in membership_api.go intentionally omits an `Expires` field so this
+	// invariant is enforced structurally — there is nothing in the local view to
+	// branch on. Removing an expired-but-listed invite is the operator's job
+	// (e.g., calling deleteUserInvite); until that happens, the membership state
+	// is reported as pending.
 	for i := range invites {
 		if strings.TrimSpace(strings.ToLower(invites[i].Email)) == normalized {
 			return &membershipResolveResult{

@@ -26,10 +26,11 @@ type TestServer struct {
 	Path   string
 	Body   *bytes.Buffer
 
-	ResponseCode      int
-	ResponseBody      interface{}
-	ResponseByPath    map[string]interface{}   // optional: response body per method+path or path
+	ResponseCode        int
+	ResponseBody        interface{}
+	ResponseByPath      map[string]interface{}   // optional: response body per method+path or path
 	ResponseQueueByPath map[string][]interface{} // optional: per method+path, pop first element per request (so same path can return different bodies in sequence)
+	ResponseCodeByPath  map[string]int           // optional: response status code per method+path or path; overrides ResponseCode for matching requests
 }
 
 func NewTestHarness(t *testing.T) (*tailscale.Client, *TestServer) {
@@ -96,7 +97,15 @@ func (t *TestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if body == nil {
 		body = t.ResponseBody
 	}
-	w.WriteHeader(t.ResponseCode)
+	code := t.ResponseCode
+	if t.ResponseCodeByPath != nil {
+		if c, ok := t.ResponseCodeByPath[key]; ok {
+			code = c
+		} else if c, ok := t.ResponseCodeByPath[r.URL.Path]; ok {
+			code = c
+		}
+	}
+	w.WriteHeader(code)
 	switch b := body.(type) {
 	case nil:
 		// no body

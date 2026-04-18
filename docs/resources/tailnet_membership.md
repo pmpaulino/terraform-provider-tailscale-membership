@@ -55,6 +55,36 @@ output "alice_state" {
 
 `state` is one of `pending`, `active`, or `disabled`.
 
+## Validation
+
+The `login_name` attribute is validated at plan time:
+
+- It MUST be a well-formed email address (e.g., `alice@example.com`).
+- Display-name forms such as `"Alice <alice@example.com>"` are rejected; this is an identity field, not an RFC 5322 mailbox header.
+- Validation errors are **not idempotent**: a second plan with the same invalid input keeps erroring, and no Tailscale API call is made.
+
+The `role` attribute is restricted to exactly `member` or `admin`. Any other value
+(including legacy Tailscale role names such as `owner`, `it-admin`, `network-admin`,
+`auditor`, `billing-admin`) is rejected at plan time. Widening the supported set is
+intentionally out of scope for this resource.
+
+## Pending invitations and expiry
+
+If the Tailscale Control API still lists an invitation for the configured
+`login_name` — even when its `expires` timestamp is in the past — this provider
+reports `state = "pending"`. An expired-but-listed invite remains pending until it
+is explicitly removed (either by the operator destroying the resource, or by the
+invite being deleted out-of-band in the Tailscale admin console). The provider
+does not attempt to garbage-collect expired invites.
+
+## Last administrator and account owner protection
+
+The Tailscale Control API rejects any attempt to remove or suspend the last
+administrator or the account owner. When this happens, the provider surfaces the
+API's refusal as a Terraform diagnostic whose message explicitly mentions
+**"last admin or account owner"** so the cause is unambiguous. Enforcement is
+API-side; the provider does not perform a proactive admin count.
+
 ## Import
 
 Import an existing membership by tailnet and login name (email):
@@ -70,7 +100,7 @@ Import ID format: `tailnet:login_name` (e.g. `example.com:alice@example.com`).
 
 ### Required
 
-- `login_name` (String) The identity (email) for the membership. Used to match an invite or user in the tailnet.
+- `login_name` (String) The identity (email) for the membership. Used to match an invite or user in the tailnet. MUST be a well-formed email address (e.g., alice@example.com).
 
 ### Optional
 
