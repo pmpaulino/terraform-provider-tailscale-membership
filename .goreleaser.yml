@@ -1,3 +1,16 @@
+# GoReleaser config for terraform-provider-tailscale-membership.
+#
+# - Builds the FR-014 11-platform OS/arch matrix (linux × {amd64,arm64,386,arm};
+#   darwin × {amd64,arm64}; windows × {amd64,386}; freebsd × {amd64,arm,386}).
+# - GPG-signs the SHA256SUMS file (release-only; snapshot mode skips signing).
+# - Publishes the Terraform Registry manifest (terraform-registry-manifest.json)
+#   alongside the archives so the release shape matches what the Registry expects
+#   when v0.2 is submitted upstream.
+# - release.prerelease: auto promotes any tag containing a hyphen (e.g.
+#   v0.1.0-rc.1) to GitHub's "pre-release" UI, satisfying FR-014.
+
+version: 2
+
 builds:
   - env:
       - CGO_ENABLED=0
@@ -7,22 +20,32 @@ builds:
     ldflags:
       - "-s -w -X github.com/pmpaulino/terraform-provider-tailscale-membership/tailscale.providerVersion={{.Version}} -X main.commit={{.Commit}}"
     goos:
-      - freebsd
-      - windows
       - linux
       - darwin
+      - windows
+      - freebsd
     goarch:
       - amd64
+      - arm64
       - "386"
       - arm
-      - arm64
+    # Cross-product = 16 pairs; FR-014 wants exactly 11. Exclude the 5 that
+    # Terraform Registry does not publish first-class:
     ignore:
       - goos: darwin
         goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
     binary: "{{ .ProjectName }}_v{{ .Version }}"
 
 archives:
-  - format: zip
+  - formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
@@ -42,6 +65,9 @@ signs:
 
 release:
   prerelease: auto
+  extra_files:
+    - glob: "terraform-registry-manifest.json"
+      name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
 
 changelog:
   use: github

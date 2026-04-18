@@ -152,12 +152,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T050 [P] [US3] No automated test required for migration; verification is manual per US3 acceptance scenario 1. Add a checklist item under `specs/002-standalone-membership-provider/checklists/requirements.md` (or create `checklists/migration.md`) tracking the manual `terraform state mv` walkthrough against a dev tailnet before tagging v0.1.0.
+- [X] T050 [P] [US3] `specs/002-standalone-membership-provider/checklists/migration.md` created. Tracks the manual `terraform state mv` walkthrough against a dev tailnet before tagging v0.1.0: pre-conditions (state backup, clean baseline plan), the 7 walkthrough steps mapped to `quickstart.md` §4.1–4.7 acceptance points, post-conditions (no Tailscale API calls during migration, all IDs preserved, rollback procedure if plan diff appears), and a sign-off section for the operator/date/tailnet executed.
 
 ### Implementation for User Story 3
 
-- [ ] T051 [US3] The migration guide is already authored in `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/specs/002-standalone-membership-provider/quickstart.md` section 4 (steps 4.1–4.7). Verify it includes: provider source change, provider block rename, resource type rename, exact `terraform state mv` command per resource, `terraform state replace-provider` command, verification step, and the source-address-drift note.
-- [ ] T052 [US3] Add a "Migration from the upstream-derived prototype" section to the README (see T055) that links to `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/specs/002-standalone-membership-provider/quickstart.md#4-migration-from-the-upstream-derived-prototype`, satisfying FR-021's "in the README or a dedicated docs page" requirement.
+- [X] T051 [US3] `quickstart.md` §4 verified to cover all 7 required sub-steps: §4.1 provider source change, §4.2 provider block rename, §4.3 resource type rename, §4.4 exact `terraform state mv` command per resource (including module-qualified addresses), §4.5 `terraform state replace-provider`, §4.6 verification (`terraform init -upgrade && terraform plan` returns "No changes"), §4.7 source-address drift note. Already shipped from /speckit.plan; no edit needed.
+- [DEFERRED → T063] T052 [US3] README "Migration from the upstream-derived prototype" section folds into T063's README rewrite in Phase 7 (per the plan's "User Story Dependencies" note). The link target `quickstart.md#4-migration-from-the-upstream-derived-prototype` is stable.
 
 **Checkpoint**: US3 complete. The migration path exists, is discoverable from the README, and is verifiable manually against a worked example.
 
@@ -171,12 +171,31 @@
 
 ### Tests for User Story 4
 
-- [ ] T053 [P] [US4] Add `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/scripts/test-release-snapshot.sh`: runs `goreleaser release --snapshot --clean --skip=publish,sign` and asserts ALL of the following via concrete shell checks on `dist/`: (a) `find dist -name '*.zip' | wc -l` returns exactly 11; (b) every archive name matches the regex `^terraform-provider-tailscale-membership_[^_]+_(darwin|linux|windows|freebsd)_(amd64|arm64|arm|386)\.zip$` covering the FR-014 OS/arch matrix; (c) `dist/terraform-provider-tailscale-membership_*_SHA256SUMS` exists and contains exactly 11 lines (one per archive); (d) `dist/terraform-provider-tailscale-membership_*_manifest.json` exists, parses as valid JSON via `jq -e .`, contains a top-level `version` field equal to `"5.0"`, and contains a `metadata.protocol_versions` array including `"5.0"` (the Terraform Plugin Protocol version emitted by Plugin SDK v2; Registry rejects manifests missing this shape). Wire this script into `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/.github/workflows/ci.yml` as a non-required job (informational only on PRs; required on `main`).
+- [X] T053 [P] [US4] `scripts/test-release-snapshot.sh` created and wired into `.github/workflows/ci.yml` as a `release-snapshot` job. Script runs `goreleaser release --snapshot --clean --skip=publish,sign` then asserts all 4 FR-014 invariants on `dist/`:
+  - (a) exactly 11 zip archives;
+  - (b) os/arch matrix exactly matches the FR-014 set (sorted `diff` against the canonical 11-line list);
+  - (c) `*_SHA256SUMS` exists and has 11 lines (1 per archive);
+  - (d) `*_manifest.json` exists, parses as JSON, has top-level `version: 1` (Registry manifest schema version per HashiCorp's contract — the spec text in this row originally said `version: "5.0"` which conflated the manifest schema version with the protocol version), AND `metadata.protocol_versions` contains `"5.0"` (Plugin SDK v2 protocol).
+  - Verified locally: `==> All FR-014 release-shape assertions passed.` Goreleaser snapshot produces "0.26.0-SNAPSHOT-eb64233" (inheriting upstream tag history; harmless for snapshot mode).
+  - Implementation note: `release.extra_files` in `.goreleaser.yml` only fires during the actual publish step, which is skipped in snapshot mode. The script copies `terraform-registry-manifest.json` into `dist/` post-build using the version it reads from `dist/metadata.json`, mimicking what the real release publishes.
 
 ### Implementation for User Story 4
 
-- [ ] T054 [US4] Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/.goreleaser.yml` per `research.md §R5`: update `ldflags` to `-X github.com/pmpaulino/terraform-provider-tailscale-membership/tailscale.providerVersion={{.Version}}`; keep `goos: [linux, darwin, windows, freebsd]` and `goarch: [amd64, arm64, "386", arm]`; replace the single `darwin/386` ignore with the five exclusions needed to land exactly the 11 FR-014 pairs (`darwin/386`, `darwin/arm`, `windows/arm64`, `windows/arm`, `freebsd/arm64`); preserve the `signs:` block and `release.prerelease: auto` setting (the latter satisfies FR-014's "pre-release tags MUST be marked as 'pre-release'").
-- [ ] T055 [US4] Edit `/Users/pat/Projects/pmpaulino/terraform-provider-tailscale/.github/workflows/release.yml`: replace the `tags: [v*]` filter with the four explicit glob patterns from `research.md §R3` (`v[0-9]+.[0-9]+.[0-9]+`, `v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+`, `v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+`, `v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+`); leave the rest of the job (GPG import, GoReleaser run) unchanged. Verify the existing GPG import step's `gpg_private_key` requirement guarantees a hard failure when the secret is unset (FR-016).
+- [X] T054 [US4] `.goreleaser.yml` rewritten per `research.md §R5`:
+  - `ldflags` use the renamed module path (already set in T035).
+  - `goos: [linux, darwin, windows, freebsd]` × `goarch: [amd64, arm64, "386", arm]` cross-product (16 pairs) with explicit `ignore` of the 5 non-shipped pairs (`darwin/386`, `darwin/arm`, `windows/arm64`, `windows/arm`, `freebsd/arm64`) → exactly 11 platforms.
+  - `signs:` block preserved.
+  - `release.prerelease: auto` preserved (FR-014: any `-` in tag → "pre-release" in GitHub UI).
+  - Added `release.extra_files` glob for `terraform-registry-manifest.json` so the manifest ships with every real release.
+  - Added top-level `version: 2` (silences the GoReleaser v2 schema warning).
+  - Migrated deprecated `archives.format: zip` → `archives.formats: [zip]`.
+  - New file `terraform-registry-manifest.json` at repo root (`{version: 1, metadata.protocol_versions: ["5.0"]}`).
+- [X] T055 [US4] `.github/workflows/release.yml`:
+  - `on.push.tags` rewritten to the four explicit glob patterns from `research.md §R3` (`v[0-9]+.[0-9]+.[0-9]+` plus three `-{alpha,beta,rc}.[0-9]+` variants).
+  - GPG import step (`crazy-max/ghaction-import-gpg@v6.3.0`) and GoReleaser run unchanged.
+  - The GPG action's `gpg_private_key` is a required input — when `secrets.GPG_PRIVATE_KEY` is unset the action fails with `Error: gpg_private_key input is required`, which propagates as a step failure → entire workflow fails. FR-016 ("release MUST fail loudly if GPG_FINGERPRINT is unset") satisfied without extra logic.
+  - Inline header comment documents the tag patterns and the pre-release/latest decision flow.
+- [X] Bonus fix in `.github/workflows/ci.yml`: `goimports -w -local github.com/tailscale .` rewritten to `github.com/pmpaulino` (the `format` job would otherwise have failed post-rename in Phase 2d).
 
 **Checkpoint**: US4 complete. SC-004 ("a Git tag matching the release pattern produces a complete, GPG-signed, Registry-shaped release artifact set ... with no manual post-processing required") is satisfied. T053 makes the 11-archive guarantee mechanically testable in CI without needing a real tag.
 

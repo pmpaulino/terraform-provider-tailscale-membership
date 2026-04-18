@@ -104,7 +104,7 @@ jobs:
       - name: Format code, clean up imports and module dependencies
         run: |
           go fmt ./...
-          goimports -w -local github.com/tailscale .
+          goimports -w -local github.com/pmpaulino .
           go mod tidy
 
       - name: Check for uncommitted changes
@@ -119,3 +119,25 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: check licenses
         run: ./scripts/check_license_headers.sh .
+
+  release-snapshot:
+    # Verifies the FR-014 release shape (11 archives, SHA256SUMS, Registry
+    # manifest) on every push/PR. Informational on PRs, required on main.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Install Go
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        with:
+          install-only: true
+          version: latest
+
+      - name: Run release-shape snapshot test
+        run: ./scripts/test-release-snapshot.sh

@@ -1,8 +1,25 @@
 name: release
+# Tag-triggered release workflow.
+#
+# FR-014 ships releases on two tag shapes:
+#   - production:   vMAJOR.MINOR.PATCH                  (e.g. v0.1.0)
+#   - pre-release:  vMAJOR.MINOR.PATCH-{alpha|beta|rc}.N  (e.g. v0.1.0-rc.1)
+#
+# GitHub Actions glob filters are pre-dispatch (zero CI cost for non-matching
+# tags), so listing the four explicit patterns keeps misformatted tags
+# (release-2026-04, v0.1, v0.1.0-foo, etc.) from triggering the workflow at
+# all -- satisfying FR-014's "tags not matching either pattern MUST NOT
+# trigger a release".
+#
+# Pre-release vs latest is decided by GoReleaser's release.prerelease: auto in
+# .goreleaser.yml (any tag containing a hyphen → pre-release in the GitHub UI).
 on:
   push:
     tags:
-      - "v*"
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
 
 permissions:
   contents: write
