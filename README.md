@@ -101,7 +101,13 @@ If you previously managed memberships via the prototype `tailscale_tailnet_membe
 
 ## Verifying releases
 
-Each tagged release is signed with the project's GPG key. The public half of that key is published in [`KEYS`](./KEYS) at the repository root. The fingerprint is also listed in `KEYS`'s plain-text header so you can cross-check before importing.
+Each tagged release is signed with the project's GPG key. The public half of that key is published in [`KEYS`](./KEYS) at the repository root.
+
+**Expected fingerprint** (cross-check this against the header inside `KEYS` before importing):
+
+```text
+3F84 0B5A 363E 8126 1D6B  57F0 1583 C036 5BDD 148C
+```
 
 ```bash
 # Import the project's release-signing key once

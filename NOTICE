@@ -1,0 +1,16 @@
+terraform-provider-tailscale-membership
+Copyright (c) 2026 Pedro Paulino
+
+This product includes software developed by:
+
+    terraform-provider-tailscale
+    https://github.com/tailscale/terraform-provider-tailscale
+    Copyright (c) 2021 David Bond
+    Copyright (c) 2024 Tailscale Inc & Contributors
+
+Licensed under the MIT License (see LICENSE).
+
+This is a hard fork of the upstream `terraform-provider-tailscale`
+project, scoped to provide only Tailscale tailnet membership
+management. Substantial portions of the membership resource and
+the underlying HTTP helper are derived from the upstream project.

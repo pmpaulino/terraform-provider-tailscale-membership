@@ -22,6 +22,17 @@
 
 set -euo pipefail
 
+if ! command -v gpg >/dev/null 2>&1; then
+  echo "ERROR: 'gpg' binary not found on PATH." >&2
+  echo "" >&2
+  echo "On macOS:    brew install gnupg" >&2
+  echo "On Debian:   sudo apt-get install -y gnupg" >&2
+  echo "On Fedora:   sudo dnf install -y gnupg2" >&2
+  echo "" >&2
+  echo "After installing, re-run this script. Requires gpg >= 2.2." >&2
+  exit 1
+fi
+
 REAL_NAME="${RELEASE_KEY_NAME:-pmpaulino tailscale-membership release signing key}"
 REAL_EMAIL="${RELEASE_KEY_EMAIL:-}"
 

@@ -1,0 +1,55 @@
+pmpaulino/terraform-provider-tailscale-membership — release-signing GPG key
+============================================================================
+
+This file contains the ASCII-armored PUBLIC half of the GPG key used to
+sign release artifacts (the SHA256SUMS file shipped alongside every tagged
+release archive). It satisfies FR-015 by making the signing key
+discoverable directly from the repository root.
+
+Cross-check the fingerprint below against any other channel (commit history,
+release notes, README) BEFORE importing the key. Never import a key that
+arrives in a single source you cannot independently verify.
+
+----------------------------------------------------------------------------
+Owner       : Pedro Paulino <pmpaulino@gmail.com>
+Key type    : ed25519 (EdDSA), with cv25519 encryption subkey
+Long key ID : 1583C0365BDD148C
+Fingerprint : 3F84 0B5A 363E 8126 1D6B  57F0 1583 C036 5BDD 148C
+Created     : 2026-04-19 (UTC)
+Expires     : 2028-04-18 (UTC) — see the README "Verifying releases" section
+              for rotation procedure when this date approaches.
+Use         : Detached-signature verification of release SHA256SUMS files.
+              NOT used for code signing, email, or any other purpose.
+----------------------------------------------------------------------------
+
+To import:
+
+    curl -fsSL https://raw.githubusercontent.com/pmpaulino/terraform-provider-tailscale-membership/main/KEYS \
+      | gpg --import
+
+To verify a downloaded release:
+
+    gpg --verify terraform-provider-tailscale-membership_<version>_SHA256SUMS.sig \
+                 terraform-provider-tailscale-membership_<version>_SHA256SUMS
+    shasum -a 256 -c terraform-provider-tailscale-membership_<version>_SHA256SUMS \
+                 --ignore-missing
+
+A successful signature verification establishes that the SHA256SUMS file came
+from this project; a successful checksum match establishes that the archive
+you downloaded matches what was signed.
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mDMEaeQgQRYJKwYBBAHaRw8BAQdAsufqogJJA2uLljHSZNIg+pHYqaDRJtvl0m1+
+8oHE4la0SHBtcGF1bGlubyB0YWlsc2NhbGUtbWVtYmVyc2hpcCByZWxlYXNlIHNp
+Z25pbmcga2V5IDxwbXBhdWxpbm9AZ21haWwuY29tPoi1BBMWCgBdFiEEP4QLWjY+
+gSYda1fwFYPANlvdFIwFAmnkIEEbFIAAAAAABAAObWFudTIsMi41KzEuMTIsMCwz
+AhsDBQkDwmcABQsJCAcCAiICBhUKCQgLAgQWAgMBAh4HAheAAAoJEBWDwDZb3RSM
+h2EA/0qVUBTxin7WH0rqoJivP1ssfEPEmxznWArhyfoSvUPEAP4hAQad5pjBd2kC
+hVLr9/3Pa1W12wH25qJL7IiyigpCBLg4BGnkIEESCisGAQQBl1UBBQEBB0CJeowQ
+ND9VO3JacBAYntSjd5byVC+LA76/3QThR9IFOgMBCAeImgQYFgoAQhYhBD+EC1o2
+PoEmHWtX8BWDwDZb3RSMBQJp5CBBGxSAAAAAAAQADm1hbnUyLDIuNSsxLjEyLDAs
+MwIbDAUJA8JnAAAKCRAVg8A2W90UjPp3AQDwtYTHTfHyfK/7cht937xGnkHpelDk
+OeVgmKeq0u/8FgEAqi1kH1l4D2PDUKRL49AlURzjbfK33R5jaOt7ZVdauw8=
+=+Uav
+-----END PGP PUBLIC KEY BLOCK-----
