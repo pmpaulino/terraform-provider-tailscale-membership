@@ -34,8 +34,8 @@ func membershipAPI(c *tailscale.Client) *membershipAPIClient {
 }
 
 func (m *membershipAPIClient) baseURL() *url.URL {
-	if m.Client.BaseURL != nil {
-		return m.Client.BaseURL
+	if m.BaseURL != nil {
+		return m.BaseURL
 	}
 	u, _ := url.Parse("https://api.tailscale.com")
 	return u
@@ -50,7 +50,7 @@ func (m *membershipAPIClient) do(ctx context.Context, method, rawURL string, bod
 	//     a plain *http.Client (1m timeout) and m.Client.APIKey is preserved.
 	// Any v2 resource accessor triggers init via sync.Once; Users() is the
 	// closest to the membership domain. See specs/002-standalone-membership-provider/research.md §R1.
-	_ = m.Client.Users()
+	_ = m.Users()
 
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -70,26 +70,26 @@ func (m *membershipAPIClient) do(ctx context.Context, method, rawURL string, bod
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	if m.Client.UserAgent != "" {
-		req.Header.Set("User-Agent", m.Client.UserAgent)
+	if m.UserAgent != "" {
+		req.Header.Set("User-Agent", m.UserAgent)
 	}
 	// API-key mode: the v2 client adds Basic auth in its own buildRequest, but
 	// this helper builds requests directly, so we set it here. After init() this
 	// branch only fires when no Auth was configured (Auth != nil zeroes APIKey).
-	if m.Client.APIKey != "" {
-		req.SetBasicAuth(m.Client.APIKey, "")
+	if m.APIKey != "" {
+		req.SetBasicAuth(m.APIKey, "")
 	}
-	return m.Client.HTTP.Do(req)
+	return m.HTTP.Do(req)
 }
 
 // listUserInvites returns all open user invites for the tailnet.
 func (m *membershipAPIClient) listUserInvites(ctx context.Context) ([]userInvite, error) {
-	path := fmt.Sprintf("%s/api/v2/tailnet/%s/user-invites", m.baseURL().String(), url.PathEscape(m.Client.Tailnet))
+	path := fmt.Sprintf("%s/api/v2/tailnet/%s/user-invites", m.baseURL().String(), url.PathEscape(m.Tailnet))
 	resp, err := m.do(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("list user invites: %s (%d): %s", resp.Status, resp.StatusCode, string(body))
@@ -104,13 +104,13 @@ func (m *membershipAPIClient) listUserInvites(ctx context.Context) ([]userInvite
 // createUserInvite creates a user invite with the given email and role.
 // API expects POST body as array of invites; we send one.
 func (m *membershipAPIClient) createUserInvite(ctx context.Context, email, role string) (*userInvite, error) {
-	path := fmt.Sprintf("%s/api/v2/tailnet/%s/user-invites", m.baseURL().String(), url.PathEscape(m.Client.Tailnet))
+	path := fmt.Sprintf("%s/api/v2/tailnet/%s/user-invites", m.baseURL().String(), url.PathEscape(m.Tailnet))
 	body := []map[string]string{{"email": email, "role": role}}
 	resp, err := m.do(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("create user invite: %s (%d): %s", resp.Status, resp.StatusCode, string(bodyBytes))
@@ -132,7 +132,7 @@ func (m *membershipAPIClient) deleteUserInvite(ctx context.Context, inviteID str
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("delete user invite: %s (%d): %s", resp.Status, resp.StatusCode, string(body))
@@ -147,7 +147,7 @@ func (m *membershipAPIClient) suspendUser(ctx context.Context, userID string) er
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("suspend user: %s (%d): %s", resp.Status, resp.StatusCode, string(body))
@@ -162,7 +162,7 @@ func (m *membershipAPIClient) restoreUser(ctx context.Context, userID string) er
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("restore user: %s (%d): %s", resp.Status, resp.StatusCode, string(body))
@@ -177,7 +177,7 @@ func (m *membershipAPIClient) deleteUser(ctx context.Context, userID string) err
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("delete user: %s (%d): %s", resp.Status, resp.StatusCode, string(body))
@@ -193,7 +193,7 @@ func (m *membershipAPIClient) updateUserRole(ctx context.Context, userID, role s
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNotFound {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("update user role: %s (%d): %s", resp.Status, resp.StatusCode, string(bodyBytes))

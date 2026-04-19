@@ -7,15 +7,9 @@ package tailscale
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"maps"
 	"net/url"
-	"os"
-	"time"
 
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -224,116 +218,4 @@ func diagnosticsError(err error, message string, args ...interface{}) diag.Diagn
 	}
 
 	return diags
-}
-
-func diagnosticsAsError(diags diag.Diagnostics) error {
-	var combined string
-	for _, d := range diags {
-		if d.Severity == diag.Error {
-			combined += fmt.Sprintf("%s: %s\n", d.Summary, d.Detail)
-		}
-	}
-
-	if combined == "" {
-		return nil
-	}
-
-	return errors.New(combined)
-}
-
-func diagnosticsErrorWithPath(err error, message string, path cty.Path, args ...interface{}) diag.Diagnostics {
-	d := diagnosticsError(err, message, args...)
-	for i := range d {
-		d[i].AttributePath = path
-	}
-
-	return d
-}
-
-func createUUID() string {
-	val, err := uuid.GenerateUUID()
-	if err != nil {
-		panic(err)
-	}
-	return val
-}
-
-func readWithWaitFor(fn schema.ReadContextFunc) schema.ReadContextFunc {
-	return func(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-		var d diag.Diagnostics
-
-		// Do an initial check in case we don't need to wait at all.
-		d = fn(ctx, data, i)
-		if !d.HasError() {
-			return d
-		}
-
-		waitFor := data.Get("wait_for").(string)
-		if waitFor == "" {
-			return fn(ctx, data, i)
-		}
-
-		dur, err := time.ParseDuration(waitFor)
-		if err != nil {
-			return diagnosticsError(err, "failed to parse wait_for")
-		}
-
-		maxTicker := time.NewTicker(dur)
-		defer maxTicker.Stop()
-
-		intervalTicker := time.NewTicker(time.Second)
-		defer intervalTicker.Stop()
-
-		// Check every second for the data, until we reach the maximum specified duration.
-		for {
-			select {
-			case <-ctx.Done():
-				return diag.FromErr(ctx.Err())
-			case <-maxTicker.C:
-				return d
-			case <-intervalTicker.C:
-				d = fn(ctx, data, i)
-				if d.HasError() {
-					continue
-				}
-
-				return d
-			}
-		}
-	}
-}
-
-// setProperties sets the properties of a ResourceData from the values in the
-// given map. Existing ResourceData properties that don't appear in the map are
-// left as-is.
-func setProperties(d *schema.ResourceData, props map[string]any) diag.Diagnostics {
-	for name, value := range props {
-		if err := d.Set(name, value); err != nil {
-			return diagnosticsError(err, "failed to set %s", name)
-		}
-	}
-	return nil
-}
-
-// optional returns a pointer to the value at key in the given resource if,
-// and only if, the value has changed. If the value is unchanged, it returns nil.
-func optional[T any](d *schema.ResourceData, key string) *T {
-	if !d.HasChange(key) {
-		return nil
-	}
-	return tailscale.PointerTo(d.Get(key).(T))
-}
-
-// isAcceptanceTesting returns true if we're running acceptance tests.
-func isAcceptanceTesting() bool {
-	return os.Getenv("TF_ACC") != ""
-}
-
-// combinedSchemas creates a schema that combines two supplied schemas.
-// Properties in schema b overwrite the same properties in schema b.
-func combinedSchemas(a, b map[string]*schema.Schema) map[string]*schema.Schema {
-	out := make(map[string]*schema.Schema, len(a)+len(b))
-	maps.Copy(out, a)
-	maps.Copy(out, b)
-	return out
 }
