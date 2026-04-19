@@ -6,6 +6,9 @@
 package tools
 
 import (
-	_ "github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs"
+	// goimports is invoked by `make fmt` and the CI `format` job.
+	// terraform-plugin-docs (tfplugindocs) was removed in Phase 7 / feature 002:
+	// docs are hand-authored under docs/. See main.go's package-doc comment for
+	// the rationale (Terraform local-name dash-vs-underscore mismatch).
 	_ "golang.org/x/tools/cmd/goimports"
 )

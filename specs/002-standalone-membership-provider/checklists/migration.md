@@ -15,9 +15,9 @@ This checklist tracks the manual `terraform state mv` walkthrough that verifies 
 
 ## Walkthrough — execute in order
 
-- [ ] **§4.1**: `required_providers` updated from `tailscale/tailscale` to `pmpaulino/tailscale-membership` with local name `tailscale_membership`.
-- [ ] **§4.2**: Provider block renamed from `provider "tailscale" { ... }` to `provider "tailscale_membership" { ... }`. Argument values (api_key / oauth_client_id / oauth_client_secret / identity_token / tailnet / base_url / scopes) copied verbatim.
-- [ ] **§4.3**: Every `resource "tailscale_tailnet_membership" ...` block renamed to `resource "tailscale_membership_tailnet_membership" ...` in HCL. Argument values unchanged.
+- [ ] **§4.1**: `required_providers` updated from `tailscale/tailscale` to `pmpaulino/tailscale-membership` with local name `tailscale-membership` (dashed — Terraform rejects underscores in local names).
+- [ ] **§4.2**: Provider block renamed from `provider "tailscale" { ... }` to `provider "tailscale-membership" { ... }`. Argument values (api_key / oauth_client_id / oauth_client_secret / identity_token / tailnet / base_url / scopes) copied verbatim.
+- [ ] **§4.3**: Every `resource "tailscale_tailnet_membership" ...` block renamed to `resource "tailscale_membership_tailnet_membership" ...` AND given an explicit `provider = tailscale-membership` attribute (required because the resource type prefix `tailscale_*` would otherwise default-bind to the upstream `tailscale` provider). Argument values unchanged.
 - [ ] **§4.4**: For each membership resource, `terraform state mv 'tailscale_tailnet_membership.<name>' 'tailscale_membership_tailnet_membership.<name>'` executed and reported `Move successful`. Module-qualified addresses (e.g. `module.team.tailscale_tailnet_membership.alice`) handled.
 - [ ] **§4.5**: `terraform state replace-provider 'registry.terraform.io/tailscale/tailscale' 'registry.terraform.io/pmpaulino/tailscale-membership'` executed (or skipped if previously dev-overridden).
 - [ ] **§4.6**: `terraform init -upgrade` succeeds.

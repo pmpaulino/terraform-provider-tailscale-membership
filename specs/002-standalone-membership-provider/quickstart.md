@@ -52,12 +52,20 @@ unzip terraform-provider-tailscale-membership_0.1.0_linux_amd64.zip -d \
 
 ## 2. Configure the provider
 
-The source address `pmpaulino/tailscale-membership` contains a dash, which is not a legal Terraform local-name identifier. **Every Terraform configuration MUST alias the source explicitly via `required_providers`**:
+This provider involves three distinct identifiers that obey different syntactic rules:
+
+| What | Value | Why |
+|---|---|---|
+| Provider source address | `pmpaulino/tailscale-membership` | Registry/source address — any character valid in a URL path. |
+| Terraform local name (in `required_providers`) | `tailscale-membership` | Terraform local names allow letters/digits/dashes; underscores are forbidden. |
+| Resource type (in HCL) | `tailscale_membership_tailnet_membership` | HCL resource identifiers cannot contain dashes; underscores are required. |
+
+Because the resource type starts with `tailscale_`, Terraform would default-bind it to the upstream `tailscale/tailscale` provider when both are loaded. **Every membership resource block MUST carry `provider = tailscale-membership`** to override the implicit binding (see §3). Declare the alias in `required_providers`:
 
 ```hcl
 terraform {
   required_providers {
-    tailscale_membership = {
+    tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
       version = "~> 0.1"
     }
@@ -65,12 +73,12 @@ terraform {
 }
 ```
 
-The local name `tailscale_membership` becomes the resource type prefix in HCL.
+> **Spec history note**: an earlier version of this spec proposed local name `tailscale_membership` (with an underscore). Terraform's CLI rejects underscores in provider local names — `must contain only letters, digits, and dashes` — so the canonical local name is `tailscale-membership` (dashed). See `spec.md` Q3 amendment.
 
 ### 2a. API-key auth
 
 ```hcl
-provider "tailscale_membership" {
+provider "tailscale-membership" {
   api_key = "tskey-api-..."
   tailnet = "example.com"
 }
@@ -81,7 +89,7 @@ Or via environment: `export TAILSCALE_API_KEY=tskey-api-...` and `export TAILSCA
 ### 2b. OAuth client credentials (recommended)
 
 ```hcl
-provider "tailscale_membership" {
+provider "tailscale-membership" {
   oauth_client_id     = var.tailscale_oauth_client_id
   oauth_client_secret = var.tailscale_oauth_client_secret
   scopes              = ["users:write", "user_invites:write"]
@@ -94,7 +102,7 @@ The OAuth client MUST have the `UserInvites` and `users` scopes (see [`contracts
 ### 2c. Federated Identity (workload identity federation)
 
 ```hcl
-provider "tailscale_membership" {
+provider "tailscale-membership" {
   oauth_client_id = var.tailscale_oauth_client_id
   identity_token  = data.aws_iam_openid_connect_provider.this.id_token  # or any other JWT source
   tailnet         = "example.com"
@@ -105,19 +113,24 @@ provider "tailscale_membership" {
 
 ## 3. Manage memberships
 
+Every membership resource block MUST carry `provider = tailscale-membership` because the resource type prefix `tailscale_*` would otherwise default-bind to the upstream `tailscale/tailscale` provider when both are loaded.
+
 ```hcl
 resource "tailscale_membership_tailnet_membership" "alice" {
+  provider   = tailscale-membership
   login_name = "alice@example.com"
   role       = "member"
 }
 
 resource "tailscale_membership_tailnet_membership" "bob_admin" {
+  provider   = tailscale-membership
   login_name = "bob@example.com"
   role       = "admin"
 }
 
 # Disable temporarily without losing the membership record:
 resource "tailscale_membership_tailnet_membership" "carol_paused" {
+  provider   = tailscale-membership
   login_name = "carol@example.com"
   role       = "member"
   suspended  = true
@@ -125,9 +138,10 @@ resource "tailscale_membership_tailnet_membership" "carol_paused" {
 
 # Downgrade to member instead of removing on destroy:
 resource "tailscale_membership_tailnet_membership" "dave_admin" {
-  login_name             = "dave@example.com"
-  role                   = "admin"
-  downgrade_on_destroy   = true
+  provider             = tailscale-membership
+  login_name           = "dave@example.com"
+  role                 = "admin"
+  downgrade_on_destroy = true
 }
 ```
 
@@ -167,7 +181,7 @@ to:
 ```hcl
 terraform {
   required_providers {
-    tailscale_membership = {
+    tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
       version = "~> 0.1"
     }
@@ -177,23 +191,30 @@ terraform {
 
 ### 4.2. Rename the provider block
 
-Change `provider "tailscale" { ... }` to `provider "tailscale_membership" { ... }`. Argument names and values are unchanged (the configuration schema matches upstream per FR-004).
+Change `provider "tailscale" { ... }` to `provider "tailscale-membership" { ... }`. Argument names and values are unchanged (the configuration schema matches upstream per FR-004).
 
-### 4.3. Rename every membership resource
+> If you also want to keep the upstream `tailscale/tailscale` provider loaded for non-membership resources, leave its `required_providers` entry and `provider "tailscale" { ... }` block in place; the two providers coexist.
+
+### 4.3. Rename every membership resource and add the `provider =` attribute
 
 For each membership resource in your configuration, change:
 
 ```hcl
-resource "tailscale_tailnet_membership" "alice" { ... }
+resource "tailscale_tailnet_membership" "alice" {
+  login_name = "alice@example.com"
+}
 ```
 
 to:
 
 ```hcl
-resource "tailscale_membership_tailnet_membership" "alice" { ... }
+resource "tailscale_membership_tailnet_membership" "alice" {
+  provider   = tailscale-membership
+  login_name = "alice@example.com"
+}
 ```
 
-Argument values are unchanged.
+Two changes per block: (1) rename the resource type from `tailscale_tailnet_membership` to `tailscale_membership_tailnet_membership`, and (2) add `provider = tailscale-membership`. The resource type prefix `tailscale_*` would default-bind to the upstream `tailscale/tailscale` provider, so the explicit `provider =` override is required even if upstream is not loaded — Terraform's static validation looks for a matching `required_providers` entry. Argument values are unchanged.
 
 ### 4.4. Move state
 

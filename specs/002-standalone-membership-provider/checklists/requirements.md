@@ -34,7 +34,7 @@
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`.
 - **Clarifications resolved in `/speckit.clarify` session 2026-04-18 (5 of 5 questions used):**
   - Q1 → Go module path locked to `github.com/pmpaulino/terraform-provider-tailscale-membership` (FR-012).
-  - Q2 → Local provider type `tailscale_membership`; resource type `tailscale_membership_tailnet_membership`; `required_providers` aliasing required in every example and the migration guide (FR-011).
+  - Q2 → Resource type `tailscale_membership_tailnet_membership`; `required_providers` aliasing required in every example and the migration guide (FR-011). **Amended 2026-04-18 during /speckit.implement Phase 7**: Terraform local name is `tailscale-membership` (with a dash; original answer `tailscale_membership` with underscore was rejected by Terraform CLI's local-name validation). Every resource block additionally requires `provider = tailscale-membership` because the `tailscale_*` resource prefix would default-bind to the upstream provider. See `spec.md` Q3 amendment for full rationale.
   - Q3 → Release platform matrix locked to the conventional Registry first-class set (11 OS/arch combinations) (FR-014).
   - Q4 → Release tag patterns locked: `v<MAJOR>.<MINOR>.<PATCH>` for production, `v<MAJOR>.<MINOR>.<PATCH>-(alpha|beta|rc).<N>` for pre-releases; pre-releases marked as such in GitHub UI; non-matching tags do not trigger releases (FR-014).
   - Q5 → Feature-001 remediation backlog must live at `specs/002-standalone-membership-provider/backlog.md` with one entry per finding (summary + origin link + status); not merged into `tasks.md`; not solely in an external issue tracker (FR-010).

@@ -36,40 +36,21 @@ jobs:
       - name: Run tests
         run: go test -race ./...
 
-  generate:
+  docs-coverage:
+    # Hand-authored docs (see main.go's package doc for why tfplugindocs
+    # cannot run against this provider). This job enforces 100% bidirectional
+    # schema<->docs coverage (FR-019, SC-007) by introspecting the Go schema
+    # source and the markdown "## Schema" sections.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
-      - name: Install Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
-        with:
-          go-version-file: go.mod
+      - name: Install ripgrep
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
 
-      - name: Get cache paths
-        id: cache
-        run: |
-          echo "build=$(go env GOCACHE)" | tee -a $GITHUB_OUTPUT
-          echo "module=$(go env GOMODCACHE)" | tee -a $GITHUB_OUTPUT
-
-      - name: Set up cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
-        with:
-          path: |
-            ${{ steps.cache.outputs.build }}
-            ${{ steps.cache.outputs.module }}
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Generate documentation
-        run: go generate ./...
-
-      - name: Check for uncommitted changes
-        run: |
-          git add .
-          git diff --staged --exit-code
+      - name: Run schema<->docs coverage check
+        run: ./scripts/check-docs-coverage.sh
 
   format:
     runs-on: ubuntu-latest

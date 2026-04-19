@@ -1,128 +1,134 @@
-# terraform-provider-tailscale
+# terraform-provider-tailscale-membership
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/tailscale/terraform-provider-tailscale.svg)](https://pkg.go.dev/github.com/tailscale/terraform-provider-tailscale)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tailscale/terraform-provider-tailscale)](https://goreportcard.com/report/github.com/tailscale/terraform-provider-tailscale)
-![Github Actions](https://github.com/tailscale/terraform-provider-tailscale/actions/workflows/ci.yml/badge.svg?branch=main)
+A single-purpose Terraform provider, **`pmpaulino/tailscale-membership`**, that exposes only Tailscale tailnet membership management.
 
-This repository contains the source code for the [Tailscale Terraform provider](https://registry.terraform.io/providers/tailscale/tailscale).
-This Terraform provider lets you interact with the [Tailscale](https://tailscale.com) API.
+This is a hard-fork derivative of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale) (MIT-licensed; see [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE)). All upstream resources unrelated to membership (DNS, ACLs, devices, keys, webhooks, posture integrations, contacts, settings, AWS external IDs, OAuth clients, etc.) have been removed; the v0.1 surface is one resource, [`tailscale_membership_tailnet_membership`](./docs/resources/tailnet_membership.md).
 
-See the [documentation](https://registry.terraform.io/providers/tailscale/tailscale/latest/docs) in the Terraform registry
-for the most up-to-date information and latest release.
+If you also need to manage devices, ACLs, DNS, etc., use the upstream provider — the two are designed to coexist in the same Terraform module.
 
-This provider is maintained by Tailscale. Thanks to everyone who contributed to the development of the Tailscale Terraform provider, and special thanks to [davidsbond](https://github.com/davidsbond).
+## Status
 
-## Getting Started
+- **v0.1 (current)**: GitHub-Releases-only; not yet on the Terraform Registry. Install via dev override or filesystem mirror (see [Install](#install) below).
+- **v0.2 (planned)**: Terraform Registry submission and additional read-only data sources.
 
-To install this provider, copy and paste this code into your Terraform configuration. Then, run `terraform init`:
+## Install
 
-```terraform
-terraform {
-  required_providers {
-    tailscale = {
-      source = "tailscale/tailscale"
-      version = "~> 0.16" // Latest 0.16.x
-    }
-  }
-}
+### Option A — dev override (recommended for evaluation)
 
-provider "tailscale" {
-  api_key = "tskey-api-..."
-}
+```bash
+git clone https://github.com/pmpaulino/terraform-provider-tailscale-membership
+cd terraform-provider-tailscale-membership
+go install .
 ```
 
-In the `provider` block, set your API key in the `api_key` field. Alternatively, use the `TAILSCALE_API_KEY` environment variable.
-
-### Using OAuth client
-
-Instead of using a personal API key, you can configure the provider to use an [OAuth client](https://tailscale.com/kb/1215/oauth-clients/), e.g.:
-
-```terraform
-provider "tailscale" {
-  oauth_client_id = "..."
-  oauth_client_secret = "tskey-client-..."
-}
-```
-
-### API endpoint
-
-The default api endpoint is `https://api.tailscale.com`. If your coordination/control server API is at another endpoint, you can pass in `base_url` in the provider block.
-
-```terraform
-provider "tailscale" {
-  api_key = "tskey-api-..."
-  base_url = "https://api.us.tailscale.com"
-}
-```
-
-## Updating an existing installation
-To update an existing terraform deployment currently using the original `davidsbond/tailscale` provider, use:
-```
-terraform state replace-provider registry.terraform.io/davidsbond/tailscale registry.terraform.io/tailscale/tailscale
-```
-
-## Contributing
-
-Please review the [contributing guidelines](./CONTRIBUTING.md) and [code of conduct](.github/CODE_OF_CONDUCT.md) before
-contributing to this codebase. Please create a [new issue](https://github.com/tailscale/terraform-provider-tailscale/issues/new/choose)
-for bugs and feature requests and fill in as much detail as you can.
-
-### Local Provider Development
-
-The [Terraform plugin documentation on debugging](https://developer.hashicorp.com/terraform/plugin/debugging)
-provides helpful strategies for debugging while developing plugins.
-
-Namely, adding a [development override](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers)
-for the `tailscale/tailscale` provider allows for using your local copy of the provider instead of a published version.
-
-Your `terraformrc` should look something like the following:
+Add to `~/.terraformrc`:
 
 ```hcl
 provider_installation {
-  # This disables the version and checksum verifications for this
-  # provider and forces Terraform to look for the tailscale/tailscale
-  # provider plugin in the given directory.
   dev_overrides {
-    "tailscale/tailscale" = "/path/to/this/repo/on/disk"
+    "pmpaulino/tailscale-membership" = "/absolute/path/to/$GOBIN"
   }
-  # For all other providers, install them directly from their origin provider
-  # registries as normal. If you omit this, Terraform will _only_ use
-  # the dev_overrides block, and so no other providers will be available.
   direct {}
 }
 ```
 
-Remember to run `make build` to build the provider and pick up your local changes.
+### Option B — tagged GitHub Release (recommended for production until v0.2 ships to the Registry)
 
-#### Acceptance Tests
+1. Download the appropriate platform zip from the [GitHub Releases](https://github.com/pmpaulino/terraform-provider-tailscale-membership/releases) page.
+2. **Verify the GPG signature and SHA256** (see [Verifying releases](#verifying-releases) below).
+3. Unzip into Terraform's filesystem-mirror plugin path:
 
-Tests in this repo that are prefixed with `TestAcc` are acceptance tests which run against a real instance of the tailscale control plane.
-These tests are skipped unless the `TF_ACC` environment variable is set.
-Running `make testacc` sets the `TF_ACC` variable and runs the tests.
-
-The `TF_ACC` environment variable is handled by [Terraform core code](https://developer.hashicorp.com/terraform/plugin/sdkv2/testing/acceptance-tests#requirements-and-recommendations)
-and is not directly referenced in provider code.
-
-The following tailscale specific environment variables must also be set:
-- `TAILSCALE_BASE_URL`
-  - URL of the control plane
-- `TAILSCALE_API_KEY`
-  - Tests will be performed against the tailnet which the key belongs to
-- `TAILSCALE_TEST_DEVICE_NAME`
-  - The FQDN of a device owned by the owner of the API key in use
-
-If you run a local control server with the `terraform-acceptance-testing` test scenario, then you can use the make rule `testacc_local`
-which will correctly populate the necessary environment variables for you.
-
-```
-./tool/go run -tags tailscale_saas ./cmd/devcontrol --generate-test-devices=terraform-acceptance-testing &
-make testacc_local
+```bash
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/0.1.0/linux_amd64
+unzip terraform-provider-tailscale-membership_0.1.0_linux_amd64.zip -d \
+  ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/0.1.0/linux_amd64
 ```
 
-## Releasing
+`terraform init` will discover the plugin from this path.
 
-Our releases follow sem-ver format and follow the recommended versioning practices [as documented by HashiCorp](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning). 
+The full operator quickstart, including all three authentication modes and worked examples, is in [`specs/002-standalone-membership-provider/quickstart.md`](./specs/002-standalone-membership-provider/quickstart.md).
 
-Pushing a tag of the format `vX.Y.Z` will trigger the [release workflow](./.github/workflows/release.yml) which uses [goreleaser](https://github.com/goreleaser/goreleaser) to build and sign artifacts and generate a [GitHub release](https://github.com/tailscale/terraform-provider-tailscale/releases).
+## Naming conventions (important)
 
-GitHub releases are pulled in and served by the [HashiCorp Terrafrom](https://registry.terraform.io/providers/tailscale/tailscale/latest) and [OpenTofu](https://github.com/opentofu/registry/blob/main/providers/t/tailscale/tailscale.json) registries for usage of the provider via Terraform or OpenTofu.
+This provider's source address contains a dash, but Terraform's local-name and HCL identifier rules disagree about which separator to use. Operators need to know the three identifiers involved:
+
+| What | Value | Why |
+|---|---|---|
+| Provider source address | `pmpaulino/tailscale-membership` | Registry/source address — any character valid in a URL path. |
+| Terraform local name (in `required_providers`) | `tailscale-membership` | Terraform local names allow letters/digits/dashes; underscores are forbidden. |
+| Resource type (in HCL) | `tailscale_membership_tailnet_membership` | HCL resource identifiers cannot contain dashes; underscores are required. |
+
+Because the resource type starts with `tailscale_`, Terraform would default-bind it to the upstream `tailscale/tailscale` provider when both are loaded in the same module. **Every membership resource block MUST carry `provider = tailscale-membership`** to override that implicit binding:
+
+```hcl
+terraform {
+  required_providers {
+    tailscale = {
+      source  = "tailscale/tailscale"
+      version = "~> 0.16"
+    }
+    tailscale-membership = {
+      source  = "pmpaulino/tailscale-membership"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "tailscale" { ... }
+provider "tailscale-membership" { ... }
+
+resource "tailscale_acl" "main" { ... }                          # bound to upstream implicitly
+
+resource "tailscale_membership_tailnet_membership" "alice" {
+  provider   = tailscale-membership                              # required override
+  login_name = "alice@example.com"
+  role       = "member"
+}
+```
+
+See [`docs/index.md`](./docs/index.md) for the full provider page.
+
+## Migration from the upstream-derived prototype
+
+If you previously managed memberships via the prototype `tailscale_tailnet_membership` resource (feature 001 of this repository, before the v0.1 fork), follow the [migration guide in `quickstart.md` §4](./specs/002-standalone-membership-provider/quickstart.md#4-migration-from-the-upstream-derived-prototype). It walks through:
+
+1. Updating `required_providers`.
+2. Renaming the provider block.
+3. Renaming every membership resource type (`tailscale_tailnet_membership` → `tailscale_membership_tailnet_membership`) and adding the `provider = tailscale-membership` attribute.
+4. `terraform state mv` for each resource.
+5. `terraform state replace-provider` to drop the old source address.
+6. Verification: `terraform plan` should report `No changes.`
+
+## Verifying releases
+
+Each tagged release is signed with the project's GPG key. The public half of that key is published in [`KEYS`](./KEYS) at the repository root. The fingerprint is also listed in `KEYS`'s plain-text header so you can cross-check before importing.
+
+```bash
+# Import the project's release-signing key once
+curl -fsSL https://raw.githubusercontent.com/pmpaulino/terraform-provider-tailscale-membership/main/KEYS \
+  | gpg --import
+
+# Verify the SHA256SUMS signature on a downloaded release
+gpg --verify terraform-provider-tailscale-membership_0.1.0_SHA256SUMS.sig \
+             terraform-provider-tailscale-membership_0.1.0_SHA256SUMS
+
+# Verify the SHA256 of your downloaded archive
+shasum -a 256 -c terraform-provider-tailscale-membership_0.1.0_SHA256SUMS --ignore-missing
+```
+
+A successful signature verification establishes the `SHA256SUMS` file came from the project; a successful checksum match establishes your downloaded archive matches what was signed.
+
+## Documentation
+
+- Provider page: [`docs/index.md`](./docs/index.md)
+- Resource page: [`docs/resources/tailnet_membership.md`](./docs/resources/tailnet_membership.md)
+- Operator quickstart and migration guide: [`specs/002-standalone-membership-provider/quickstart.md`](./specs/002-standalone-membership-provider/quickstart.md)
+- v0.1 specification, design, and tasks: [`specs/002-standalone-membership-provider/`](./specs/002-standalone-membership-provider/)
+
+## Local provider development
+
+For changes to the provider itself, see the [Terraform Plugin debugging docs](https://developer.hashicorp.com/terraform/plugin/debugging) and use the dev override flow described in [Install — Option A](#option-a--dev-override-recommended-for-evaluation) above. Run `make build` to build, `go test ./...` to run unit tests, and `make testacc` to run acceptance tests against a real Tailscale tailnet (requires `TF_ACC=1` plus `TAILSCALE_*` credentials).
+
+## License & attribution
+
+This project is MIT-licensed; see [`LICENSE`](./LICENSE). It is a hard fork of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale); see [`NOTICE`](./NOTICE) for the upstream attribution. There is no ongoing upstream sync.

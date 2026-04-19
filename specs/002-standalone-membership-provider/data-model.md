@@ -17,7 +17,7 @@ Per the spec's FR-009 ("The membership resource exposed by this provider MUST be
 | Field | Feature 001 (upstream-derived prototype) | Feature 002 (standalone provider v0.1) |
 |---|---|---|
 | Provider source address | (n/a — same as upstream) | `pmpaulino/tailscale-membership` |
-| Local provider type (HCL) | `tailscale` | `tailscale_membership` (set via `required_providers` alias because the source contains a dash) |
+| Terraform local name (HCL) | `tailscale` | `tailscale-membership` (dashed; set via `required_providers` alias because the source contains a dash AND Terraform local names cannot contain underscores). Resource-type prefix is still `tailscale_membership_` (with underscore — HCL identifier rule), so every resource block requires `provider = tailscale-membership`. See `spec.md` Q3 amendment. |
 | Resource type (HCL) | `tailscale_tailnet_membership` | `tailscale_membership_tailnet_membership` |
 | Go module path of the provider | `github.com/tailscale/terraform-provider-tailscale` | `github.com/pmpaulino/terraform-provider-tailscale-membership` |
 
