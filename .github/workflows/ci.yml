@@ -33,6 +33,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@b9cd54531c595b2d0b4a4e5f3cd4c13f13adf9b7 # v3.1.2
+        with:
+          terraform_wrapper: false
+
       - name: Run tests
         run: go test -race ./...
 
