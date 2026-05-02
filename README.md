@@ -106,7 +106,7 @@ Each tagged release is signed with the project's GPG key. The public half of tha
 **Expected fingerprint** (cross-check this against the header inside `KEYS` before importing):
 
 ```text
-3F84 0B5A 363E 8126 1D6B  57F0 1583 C036 5BDD 148C
+1AE3 E49A 1CCC 2805 A321 C991 21BE A434 67F2 A13D
 ```
 
 ```bash

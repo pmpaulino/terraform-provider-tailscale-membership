@@ -12,13 +12,14 @@ arrives in a single source you cannot independently verify.
 
 ----------------------------------------------------------------------------
 Owner       : Pedro Paulino <pmpaulino@gmail.com>
-Key type    : ed25519 (EdDSA), with cv25519 encryption subkey
-Long key ID : 1583C0365BDD148C
-Fingerprint : 3F84 0B5A 363E 8126 1D6B  57F0 1583 C036 5BDD 148C
-Created     : 2026-04-19 (UTC)
-Expires     : 2028-04-18 (UTC) — see the README "Verifying releases" section
+Key type    : RSA 4096
+Long key ID : 21BEA43467F2A13D
+Fingerprint : 1AE3 E49A 1CCC 2805 A321 C991 21BE A434 67F2 A13D
+Created     : 2026-05-02 (UTC)
+Expires     : 2028-05-01 (UTC) — see the README "Verifying releases" section
               for rotation procedure when this date approaches.
 Use         : Detached-signature verification of release SHA256SUMS files.
+              Required for Terraform Registry signature verification.
               NOT used for code signing, email, or any other purpose.
 ----------------------------------------------------------------------------
 
@@ -40,16 +41,55 @@ you downloaded matches what was signed.
 
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
-mDMEaeQgQRYJKwYBBAHaRw8BAQdAsufqogJJA2uLljHSZNIg+pHYqaDRJtvl0m1+
-8oHE4la0SHBtcGF1bGlubyB0YWlsc2NhbGUtbWVtYmVyc2hpcCByZWxlYXNlIHNp
-Z25pbmcga2V5IDxwbXBhdWxpbm9AZ21haWwuY29tPoi1BBMWCgBdFiEEP4QLWjY+
-gSYda1fwFYPANlvdFIwFAmnkIEEbFIAAAAAABAAObWFudTIsMi41KzEuMTIsMCwz
-AhsDBQkDwmcABQsJCAcCAiICBhUKCQgLAgQWAgMBAh4HAheAAAoJEBWDwDZb3RSM
-h2EA/0qVUBTxin7WH0rqoJivP1ssfEPEmxznWArhyfoSvUPEAP4hAQad5pjBd2kC
-hVLr9/3Pa1W12wH25qJL7IiyigpCBLg4BGnkIEESCisGAQQBl1UBBQEBB0CJeowQ
-ND9VO3JacBAYntSjd5byVC+LA76/3QThR9IFOgMBCAeImgQYFgoAQhYhBD+EC1o2
-PoEmHWtX8BWDwDZb3RSMBQJp5CBBGxSAAAAAAAQADm1hbnUyLDIuNSsxLjEyLDAs
-MwIbDAUJA8JnAAAKCRAVg8A2W90UjPp3AQDwtYTHTfHyfK/7cht937xGnkHpelDk
-OeVgmKeq0u/8FgEAqi1kH1l4D2PDUKRL49AlURzjbfK33R5jaOt7ZVdauw8=
-=+Uav
+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
+3U2+G7A/nsNPcSw=
+=1O2T
 -----END PGP PUBLIC KEY BLOCK-----
