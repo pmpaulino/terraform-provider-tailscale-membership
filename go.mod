@@ -3,9 +3,9 @@ module github.com/pmpaulino/terraform-provider-tailscale-membership
 go 1.25.5
 
 require (
-	github.com/google/go-cmp v0.7.0
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/go-cty v1.5.0
-	github.com/hashicorp/go-uuid v1.0.3
+	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.2
 	github.com/stretchr/testify v1.11.1
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a // indirect

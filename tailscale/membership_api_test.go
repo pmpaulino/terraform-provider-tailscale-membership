@@ -27,9 +27,9 @@ const markerHeader = "X-Membership-Test-Marker"
 // assert that membership_api.go::do() routes requests through
 // (*tailscale.Client).Auth.HTTPClient(...) rather than around it.
 type stubAuth struct {
-	tripped       *atomic.Int32      // incremented on every outbound request
-	gotAuthHeader *atomic.Value      // last observed Authorization header (string)
-	gotBaseURL    *atomic.Value      // baseURL passed to HTTPClient (string)
+	tripped       *atomic.Int32 // incremented on every outbound request
+	gotAuthHeader *atomic.Value // last observed Authorization header (string)
+	gotBaseURL    *atomic.Value // baseURL passed to HTTPClient (string)
 	respond       func(*http.Request) (*http.Response, error)
 }
 
