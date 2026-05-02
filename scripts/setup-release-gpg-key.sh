@@ -19,6 +19,9 @@
 # the passphrase prompt; everything else is fully scripted.
 #
 # Requires: gpg >= 2.2
+#
+# NOTE: RSA 4096 is used (not ed25519) because the Terraform Registry only
+# accepts RSA and DSA public keys for release signature verification.
 
 set -euo pipefail
 
@@ -67,11 +70,11 @@ trap 'rm -rf "$WORKDIR"' EXIT
 BATCH_FILE="$WORKDIR/batch.txt"
 cat > "$BATCH_FILE" <<EOF
 %echo Generating release signing key for $REAL_NAME <$REAL_EMAIL>
-Key-Type: EDDSA
-Key-Curve: ed25519
+Key-Type: RSA
+Key-Length: 4096
 Key-Usage: sign
-Subkey-Type: ECDH
-Subkey-Curve: cv25519
+Subkey-Type: RSA
+Subkey-Length: 4096
 Subkey-Usage: encrypt
 Name-Real: $REAL_NAME
 Name-Email: $REAL_EMAIL
@@ -82,7 +85,7 @@ Passphrase: $PASSPHRASE
 EOF
 
 echo
-echo ">>> Generating ed25519 key pair (this may take a few seconds)..."
+echo ">>> Generating RSA 4096 key pair (this may take 10–30 seconds)..."
 gpg --batch --pinentry-mode loopback --generate-key "$BATCH_FILE"
 
 # Resolve the fingerprint of the key we just created (matched on email).
@@ -127,12 +130,17 @@ echo "    - public-key.asc   (use as the body of the in-repo /KEYS file in task 
 echo "    - passphrase.txt   (paste into GitHub Secret PASSPHRASE)"
 echo
 echo "Next steps:"
-echo "  1. Open https://github.com/pmpaulino/terraform-provider-tailscale-membership/settings/secrets/actions"
-echo "  2. Add secret GPG_PRIVATE_KEY  -> contents of $PRIVATE_KEY_FILE"
-echo "  3. Add secret PASSPHRASE       -> contents of $PASSPHRASE_FILE"
-echo "  4. When task T075 runs, the in-repo /KEYS file will use the contents of $PUBLIC_KEY_FILE"
-echo "  5. Record the fingerprint above in your README 'Verifying releases' section (T063)"
+echo "  1. Update the in-repo /KEYS file with the contents of $PUBLIC_KEY_FILE"
+echo "  2. Update the fingerprint in README.md 'Verifying releases' section"
+echo "  3. Open https://github.com/pmpaulino/terraform-provider-tailscale-membership/settings/secrets/actions"
+echo "     - Update secret GPG_PRIVATE_KEY  -> contents of $PRIVATE_KEY_FILE"
+echo "     - Update secret PASSPHRASE       -> contents of $PASSPHRASE_FILE"
+echo "     - Update secret GPG_FINGERPRINT  -> $FINGERPRINT"
+echo "  4. Commit and push the updated KEYS + README, then retag v1.0.0 to rebuild signed artifacts"
+echo "  5. Add the public key to the Terraform Registry:"
+echo "     https://registry.terraform.io/settings/gpg-keys"
+echo "     (paste contents of $PUBLIC_KEY_FILE)"
 echo
 echo "Then DELETE the local copies you no longer need:"
-echo "    rm $PASSPHRASE_FILE $PRIVATE_KEY_FILE   # keep public-key.asc until T075 lands"
+echo "    rm $PASSPHRASE_FILE $PRIVATE_KEY_FILE   # keep public-key.asc until KEYS is updated"
 echo
