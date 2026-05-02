@@ -9,7 +9,7 @@ description: |-
 
 The `tailscale_membership_tailnet_membership` resource manages a user's membership in a tailnet. Creating the resource ensures the identity is in the tailnet (creates an invite if needed); destroying it cancels a pending invite or removes the user. Supports suspend/restore and optional downgrade on destroy.
 
-Full membership management requires credentials with **UserInvites** and **users** OAuth scopes. Creating invites may require a user-owned API key; see the [Tailscale invite docs](https://tailscale.com/kb/1371/invite-users).
+**Authentication requirement:** The Tailscale `user-invites` API rejects OAuth client tokens and federated identity tokens with `403 "operation only permitted for user-owned keys"`, regardless of scopes. A **personal API key** (`tskey-api-...`) is required to use the `create` path of this resource. See the [provider authentication docs](../index.md#authentication) for details.
 
 ## Example Usage
 

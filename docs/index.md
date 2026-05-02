@@ -27,9 +27,8 @@ terraform {
 }
 
 provider "tailscale-membership" {
-  oauth_client_id     = "my_client_id"
-  oauth_client_secret = "my_client_secret"
-  tailnet             = "example.com"
+  api_key = "tskey-api-..."
+  tailnet = "example.com"
 }
 ```
 
@@ -56,9 +55,10 @@ provider "tailscale" {
   oauth_client_secret = var.tailscale_oauth_client_secret
 }
 
+# The membership provider requires a personal API key (see Authentication below).
 provider "tailscale-membership" {
-  oauth_client_id     = var.tailscale_oauth_client_id
-  oauth_client_secret = var.tailscale_oauth_client_secret
+  api_key = var.tailscale_api_key
+  tailnet = "example.com"
 }
 
 resource "tailscale_acl" "main" {
@@ -74,41 +74,43 @@ resource "tailscale_membership_tailnet_membership" "alice" {
 
 ## Authentication
 
-Three authentication modes are supported. Exactly one must be configured; combinations are rejected at provider-configuration time with a "conflicting" diagnostic. Using a [trust credential](https://tailscale.com/kb/1623/trust-credentials) (an OAuth client or federated identity) is recommended whenever possible: trust credentials can have granular access scopes applied to them, whereas API keys cannot.
+Three authentication modes are supported. Exactly one must be configured; combinations are rejected at provider-configuration time with a "conflicting" diagnostic.
 
-### OAuth clients
+> **Important:** The Tailscale `user-invites` API (`POST /api/v2/tailnet/{tailnet}/user-invites`) only accepts **user-owned personal API keys**. OAuth client tokens and federated identity tokens are rejected by the Tailscale control plane with `403 "operation only permitted for user-owned keys"`, regardless of which scopes are granted to the OAuth client. Because creating a new invite is the core operation of this provider's `create` path, **a personal API key is the only credential type that supports the full resource lifecycle.** OAuth and federated identity are documented below for completeness, but they cannot successfully call `terraform apply` on a resource that does not already exist as an active user in the tailnet.
 
-[OAuth clients](https://tailscale.com/kb/1215/oauth-clients) authenticate via `oauth_client_id` + `oauth_client_secret`. The OAuth client MUST have the `UserInvites` and `users` scopes for full membership management.
+### API keys (required for full lifecycle)
+
+[Personal API keys](https://tailscale.com/kb/1101/api#authentication) authenticate via `api_key`. Generate one at <https://login.tailscale.com/admin/settings/keys> with the **Users** scope enabled. This is the only mode that supports the full create→read→update→delete lifecycle of the membership resource.
+
+```terraform
+provider "tailscale-membership" {
+  api_key = "tskey-api-..."
+  tailnet = "example.com"
+}
+```
+
+### OAuth clients (read/update/delete only)
+
+[OAuth clients](https://tailscale.com/kb/1215/oauth-clients) authenticate via `oauth_client_id` + `oauth_client_secret`. Due to the Tailscale API restriction noted above, OAuth tokens **cannot create user invites**. OAuth can be used for read, role-update, suspend/restore, and delete operations on users who are already active members of the tailnet.
 
 ```terraform
 provider "tailscale-membership" {
   oauth_client_id     = "my_client_id"
   oauth_client_secret = "my_client_secret"
-  scopes              = ["users:write", "user_invites:write"]
+  scopes              = ["users:write"]
   tailnet             = "example.com"
 }
 ```
 
-### Federated identities
+### Federated identities (read/update/delete only)
 
-[Workload identity federation](https://tailscale.com/kb/1581/workload-identity-federation) authenticates via `oauth_client_id` + `identity_token` (a JWT from a compatible issuer such as AWS, GCP, or GitHub Actions OIDC).
+[Workload identity federation](https://tailscale.com/kb/1581/workload-identity-federation) authenticates via `oauth_client_id` + `identity_token` (a JWT from a compatible issuer such as AWS, GCP, or GitHub Actions OIDC). Subject to the same `user-invites` restriction as OAuth clients above.
 
 ```terraform
 provider "tailscale-membership" {
   oauth_client_id = "my_client_id"
   identity_token  = "my_identity_token"
   tailnet         = "example.com"
-}
-```
-
-### API keys
-
-[API keys](https://tailscale.com/kb/1101/api#authentication) authenticate via `api_key`. A user-owned API key may be required to create user invites; see the [Tailscale invite docs](https://tailscale.com/kb/1371/invite-users).
-
-```terraform
-provider "tailscale-membership" {
-  api_key = "my_api_key"
-  tailnet = "example.com"
 }
 ```
 

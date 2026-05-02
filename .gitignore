@@ -17,6 +17,7 @@ vendor/
 # Tooling / IDE
 .cursor/
 .specify/
+.dev/
 
 # Universal
 .DS_Store
