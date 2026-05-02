@@ -116,4 +116,3 @@ func (t *TestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		assert.NoError(t.t, json.NewEncoder(w).Encode(b))
 	}
 }
-

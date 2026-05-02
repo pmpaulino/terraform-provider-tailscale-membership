@@ -1,3 +1,6 @@
+// Copyright (c) David Bond, Tailscale Inc, & Contributors
+// SPDX-License-Identifier: MIT
+
 // license-review.go (build-tag-isolated)
 //
 // Standalone helper used by Phase 8 / T066 to enumerate every Go module
