@@ -36,14 +36,14 @@ Now `terraform plan`/`apply` resolve the provider source `pmpaulino/tailscale-me
 
 ### Option B: Tagged GitHub Release (recommended for production until v0.2 ships to the Registry)
 
-1. Download the appropriate platform zip from the GitHub Releases page (e.g. `terraform-provider-tailscale-membership_0.1.0_linux_amd64.zip`).
+1. Download the appropriate platform zip from the GitHub Releases page (e.g. `terraform-provider-tailscale-membership_1.0.0_linux_amd64.zip`).
 2. Verify the GPG signature and SHA256 (see section 5).
 3. Unzip into Terraform's plugin cache directory at the path Terraform expects for filesystem mirrors:
 
 ```bash
-mkdir -p ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/0.1.0/linux_amd64
-unzip terraform-provider-tailscale-membership_0.1.0_linux_amd64.zip -d \
-  ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/0.1.0/linux_amd64
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/1.0.0/linux_amd64
+unzip terraform-provider-tailscale-membership_1.0.0_linux_amd64.zip -d \
+  ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/1.0.0/linux_amd64
 ```
 
 `terraform init` will discover the plugin from this filesystem location.
@@ -67,7 +67,7 @@ terraform {
   required_providers {
     tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }
@@ -159,7 +159,7 @@ Import ID format: `tailnet:login_name`.
 
 ## 4. Migration from the upstream-derived prototype
 
-If you are currently managing tailnet memberships via the prototype `tailscale_tailnet_membership` resource (i.e. the resource defined in feature 001 of this repository, before the v0.1 fork), follow these steps. **Tailnet state on the Tailscale side is unaffected**; only the local Terraform state and HCL change.
+If you are currently managing tailnet memberships via the prototype `tailscale_tailnet_membership` resource (i.e. the resource defined in feature 001 of this repository, before the v1.0 fork), follow these steps. **Tailnet state on the Tailscale side is unaffected**; only the local Terraform state and HCL change.
 
 ### 4.1. Update `required_providers`
 
@@ -183,7 +183,7 @@ terraform {
   required_providers {
     tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }

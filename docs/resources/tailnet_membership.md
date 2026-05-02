@@ -20,7 +20,7 @@ terraform {
   required_providers {
     tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }
@@ -79,7 +79,7 @@ The Tailscale Control API rejects any attempt to remove or suspend the last admi
 
 ## Migration from the upstream-derived prototype
 
-If you are currently managing memberships via the prototype `tailscale_tailnet_membership` resource (feature 001 of this repository, before the v0.1 fork), follow the [migration guide](https://github.com/pmpaulino/terraform-provider-tailscale-membership/blob/main/specs/002-standalone-membership-provider/quickstart.md#4-migration-from-the-upstream-derived-prototype) to rename resource types and `terraform state mv` your existing state.
+If you are currently managing memberships via the prototype `tailscale_tailnet_membership` resource (feature 001 of this repository, before the v1.0 fork), follow the [migration guide](https://github.com/pmpaulino/terraform-provider-tailscale-membership/blob/main/specs/002-standalone-membership-provider/quickstart.md#4-migration-from-the-upstream-derived-prototype) to rename resource types and `terraform state mv` your existing state.
 
 ## Import
 

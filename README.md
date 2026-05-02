@@ -2,14 +2,14 @@
 
 A single-purpose Terraform provider, **`pmpaulino/tailscale-membership`**, that exposes only Tailscale tailnet membership management.
 
-This is a hard-fork derivative of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale) (MIT-licensed; see [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE)). All upstream resources unrelated to membership (DNS, ACLs, devices, keys, webhooks, posture integrations, contacts, settings, AWS external IDs, OAuth clients, etc.) have been removed; the v0.1 surface is one resource, [`tailscale_membership_tailnet_membership`](./docs/resources/tailnet_membership.md).
+This is a hard-fork derivative of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale) (MIT-licensed; see [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE)). All upstream resources unrelated to membership (DNS, ACLs, devices, keys, webhooks, posture integrations, contacts, settings, AWS external IDs, OAuth clients, etc.) have been removed; the v1.0 surface is one resource, [`tailscale_membership_tailnet_membership`](./docs/resources/tailnet_membership.md).
 
 If you also need to manage devices, ACLs, DNS, etc., use the upstream provider — the two are designed to coexist in the same Terraform module.
 
 ## Status
 
-- **v0.1 (current)**: GitHub-Releases-only; not yet on the Terraform Registry. Install via dev override or filesystem mirror (see [Install](#install) below).
-- **v0.2 (planned)**: Terraform Registry submission and additional read-only data sources.
+- **v1.0 (current)**: GitHub-Releases-only; not yet on the Terraform Registry. Install via dev override or filesystem mirror (see [Install](#install) below).
+- **v1.1 (planned)**: Terraform Registry submission and additional read-only data sources.
 
 ## Install
 
@@ -32,16 +32,16 @@ provider_installation {
 }
 ```
 
-### Option B — tagged GitHub Release (recommended for production until v0.2 ships to the Registry)
+### Option B — tagged GitHub Release (recommended for production until v1.1 ships to the Registry)
 
 1. Download the appropriate platform zip from the [GitHub Releases](https://github.com/pmpaulino/terraform-provider-tailscale-membership/releases) page.
 2. **Verify the GPG signature and SHA256** (see [Verifying releases](#verifying-releases) below).
 3. Unzip into Terraform's filesystem-mirror plugin path:
 
 ```bash
-mkdir -p ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/0.1.0/linux_amd64
-unzip terraform-provider-tailscale-membership_0.1.0_linux_amd64.zip -d \
-  ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/0.1.0/linux_amd64
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/1.0.0/linux_amd64
+unzip terraform-provider-tailscale-membership_1.0.0_linux_amd64.zip -d \
+  ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/1.0.0/linux_amd64
 ```
 
 `terraform init` will discover the plugin from this path.
@@ -69,7 +69,7 @@ terraform {
     }
     tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }
@@ -115,11 +115,11 @@ curl -fsSL https://raw.githubusercontent.com/pmpaulino/terraform-provider-tailsc
   | gpg --import
 
 # Verify the SHA256SUMS signature on a downloaded release
-gpg --verify terraform-provider-tailscale-membership_0.1.0_SHA256SUMS.sig \
-             terraform-provider-tailscale-membership_0.1.0_SHA256SUMS
+gpg --verify terraform-provider-tailscale-membership_1.0.0_SHA256SUMS.sig \
+             terraform-provider-tailscale-membership_1.0.0_SHA256SUMS
 
 # Verify the SHA256 of your downloaded archive
-shasum -a 256 -c terraform-provider-tailscale-membership_0.1.0_SHA256SUMS --ignore-missing
+shasum -a 256 -c terraform-provider-tailscale-membership_1.0.0_SHA256SUMS --ignore-missing
 ```
 
 A successful signature verification establishes the `SHA256SUMS` file came from the project; a successful checksum match establishes your downloaded archive matches what was signed.

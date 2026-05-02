@@ -2,7 +2,7 @@ terraform {
   required_providers {
     tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }
