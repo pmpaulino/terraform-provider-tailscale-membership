@@ -26,7 +26,7 @@ resource "tailscale_membership_tailnet_membership" "alice" {
 
 func TestResourceTailnetMembership_Create_EnsureMembershipCreatesInvite(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -34,8 +34,8 @@ func TestResourceTailnetMembership_Create_EnsureMembershipCreatesInvite(t *testi
 					testServer.ResponseCode = http.StatusOK
 					inv1 := []userInvite{{ID: "inv1", Email: "alice@example.com", Role: "member"}}
 					testServer.ResponseByPath = map[string]interface{}{
-						"GET /api/v2/tailnet/example.com/users":     map[string]interface{}{"users": []tailscale.User{}},
-						"GET /api/v2/tailnet/example.com/user-invites": []userInvite{}, // fallback for destroy
+						"GET /api/v2/tailnet/example.com/users":         map[string]interface{}{"users": []tailscale.User{}},
+						"GET /api/v2/tailnet/example.com/user-invites":  []userInvite{}, // fallback for destroy
 						"POST /api/v2/tailnet/example.com/user-invites": inv1,
 					}
 					// First GET invites returns empty (so create runs); second GET invites (on Read) returns inv1
@@ -67,7 +67,7 @@ func TestResourceTailnetMembership_Create_EnsureMembershipCreatesInvite(t *testi
 
 func TestResourceTailnetMembership_Create_IdempotentWhenUserExists(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -80,7 +80,7 @@ func TestResourceTailnetMembership_Create_IdempotentWhenUserExists(t *testing.T)
 						Status:    tailscale.UserStatusActive,
 					}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":     map[string]interface{}{"users": []tailscale.User{existingUser}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{existingUser}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{existingUser}}
@@ -106,14 +106,14 @@ func TestResourceTailnetMembership_Create_IdempotentWhenUserExists(t *testing.T)
 
 func TestResourceTailnetMembership_Read_StatePendingWhenInviteExists(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
 					testServer.ResponseCode = http.StatusOK
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{{ID: "inv2", Email: "alice@example.com", Role: "member"}},
 					}
 					testServer.ResponseBody = []userInvite{{ID: "inv2", Email: "alice@example.com", Role: "member"}}
@@ -133,7 +133,7 @@ func TestResourceTailnetMembership_Read_StatePendingWhenInviteExists(t *testing.
 
 func TestResourceTailnetMembership_Read_StateActiveWhenUserExists(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -141,7 +141,7 @@ func TestResourceTailnetMembership_Read_StateActiveWhenUserExists(t *testing.T) 
 					testServer.ResponseCode = http.StatusOK
 					u := tailscale.User{ID: "u1", LoginName: "alice@example.com", Role: tailscale.UserRoleMember, Status: tailscale.UserStatusActive, Created: time.Now(), LastSeen: time.Now()}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{u}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{u}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
@@ -164,14 +164,14 @@ func TestResourceTailnetMembership_Read_StateActiveWhenUserExists(t *testing.T) 
 
 func TestResourceTailnetMembership_Delete_PendingCancelsInvite(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
 					testServer.ResponseCode = http.StatusOK
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{{ID: "inv3", Email: "alice@example.com", Role: "member"}},
 					}
 					testServer.ResponseBody = []userInvite{{ID: "inv3", Email: "alice@example.com", Role: "member"}}
@@ -182,7 +182,7 @@ func TestResourceTailnetMembership_Delete_PendingCancelsInvite(t *testing.T) {
 				PreConfig: func() {
 					testServer.ResponseCode = http.StatusOK
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = nil
@@ -197,7 +197,7 @@ func TestResourceTailnetMembership_Delete_PendingCancelsInvite(t *testing.T) {
 
 func TestResourceTailnetMembership_Delete_WhenUserExistsRemovesUser(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -205,7 +205,7 @@ func TestResourceTailnetMembership_Delete_WhenUserExistsRemovesUser(t *testing.T
 					testServer.ResponseCode = http.StatusOK
 					u := tailscale.User{ID: "u2", LoginName: "alice@example.com", Role: tailscale.UserRoleMember, Status: tailscale.UserStatusActive, Created: time.Now(), LastSeen: time.Now()}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{u}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{u}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
@@ -216,7 +216,7 @@ func TestResourceTailnetMembership_Delete_WhenUserExistsRemovesUser(t *testing.T
 				PreConfig: func() {
 					testServer.ResponseCode = http.StatusOK
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = nil
@@ -231,14 +231,14 @@ func TestResourceTailnetMembership_Delete_WhenUserExistsRemovesUser(t *testing.T
 
 func TestResourceTailnetMembership_Delete_IdempotentWhenAlreadyRemoved(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
 					testServer.ResponseCode = http.StatusOK
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{}}
@@ -253,7 +253,7 @@ func TestResourceTailnetMembership_Delete_IdempotentWhenAlreadyRemoved(t *testin
 
 func TestResourceTailnetMembership_Update_SuspendAndRestore(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -261,7 +261,7 @@ func TestResourceTailnetMembership_Update_SuspendAndRestore(t *testing.T) {
 					testServer.ResponseCode = http.StatusOK
 					u := tailscale.User{ID: "u3", LoginName: "alice@example.com", Role: tailscale.UserRoleMember, Status: tailscale.UserStatusActive, Created: time.Now(), LastSeen: time.Now()}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{u}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{u}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
@@ -273,7 +273,7 @@ func TestResourceTailnetMembership_Update_SuspendAndRestore(t *testing.T) {
 					testServer.ResponseCode = http.StatusOK
 					u := tailscale.User{ID: "u3", LoginName: "alice@example.com", Role: tailscale.UserRoleMember, Status: tailscale.UserStatusSuspended, Created: time.Now(), LastSeen: time.Now()}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{u}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{u}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
@@ -299,7 +299,7 @@ resource "tailscale_membership_tailnet_membership" "alice" {
 
 func TestResourceTailnetMembership_Delete_DowngradeOnDestroy(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -307,7 +307,7 @@ func TestResourceTailnetMembership_Delete_DowngradeOnDestroy(t *testing.T) {
 					testServer.ResponseCode = http.StatusOK
 					u := tailscale.User{ID: "u_downgrade", LoginName: "alice@example.com", Role: tailscale.UserRoleAdmin, Status: tailscale.UserStatusActive, Created: time.Now(), LastSeen: time.Now()}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{u}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{u}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
@@ -324,7 +324,7 @@ resource "tailscale_membership_tailnet_membership" "alice" {
 				PreConfig: func() {
 					testServer.ResponseCode = http.StatusOK
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = nil
@@ -345,7 +345,7 @@ resource "tailscale_membership_tailnet_membership" "alice" {
 
 func TestResourceTailnetMembership_Import(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
+		IsUnitTest:        true,
 		ProviderFactories: testProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
@@ -353,14 +353,14 @@ func TestResourceTailnetMembership_Import(t *testing.T) {
 					testServer.ResponseCode = http.StatusOK
 					u := tailscale.User{ID: "u4", LoginName: "alice@example.com", Role: tailscale.UserRoleMember, Status: tailscale.UserStatusActive, Created: time.Now(), LastSeen: time.Now()}
 					testServer.ResponseByPath = map[string]interface{}{
-						"/api/v2/tailnet/example.com/users":    map[string]interface{}{"users": []tailscale.User{u}},
+						"/api/v2/tailnet/example.com/users":        map[string]interface{}{"users": []tailscale.User{u}},
 						"/api/v2/tailnet/example.com/user-invites": []userInvite{},
 					}
 					testServer.ResponseBody = map[string]interface{}{"users": []tailscale.User{u}}
 				},
 				Config:        testTailnetMembershipCreate,
-				ResourceName: "tailscale_membership_tailnet_membership.alice",
-				ImportState:  true,
+				ResourceName:  "tailscale_membership_tailnet_membership.alice",
+				ImportState:   true,
 				ImportStateId: "example.com:alice@example.com", // tailnet:login_name
 				ImportStateCheck: func(st []*terraform.InstanceState) error {
 					if len(st) != 1 {

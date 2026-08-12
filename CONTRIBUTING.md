@@ -2,7 +2,7 @@
 
 This document contains tips for contributing to `pmpaulino/terraform-provider-tailscale-membership`. These are suggestions and advice, not hard and fast rules.
 
-> **Scope reminder.** This is a hard fork of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale) (MIT-licensed; see [`NOTICE`](./NOTICE)). It exposes **only** Tailscale tailnet-membership management — the membership resource, its data sources, and the provider plumbing required to authenticate the Tailscale Control API. Anything outside that surface (DNS, ACLs, devices, keys, webhooks, posture, etc.) is **out of scope** and lives upstream.
+> **Scope reminder.** This is a hard fork of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale) (MIT-licensed; see [`NOTICE`](./NOTICE)). It exposes **only** Tailscale tailnet-membership management — one membership resource and the provider plumbing required to authenticate the Tailscale Control API. Anything outside that surface (DNS, ACLs, devices, keys, webhooks, posture, etc.) is **out of scope** and lives upstream.
 >
 > If you want a feature that already exists in the upstream provider, use that provider directly — both can coexist in the same Terraform module (see the README's [Naming conventions](./README.md#naming-conventions) section).
 
@@ -25,7 +25,7 @@ PRs that expand the surface area beyond membership management will be closed —
 
 - Go toolchain: `go.mod` declares the minimum version; install something at or above that.
 - Build: `make build` (or `go build ./...`).
-- Unit tests: `go test ./...`.
+- Unit tests: `go test -race ./...`.
 - Acceptance tests (`TF_ACC=1`) hit the real Tailscale Control API and will mutate state on the tailnet they target. **Use a dedicated test tailnet** — do not run them against a tailnet you care about.
 - Lint: `golangci-lint run ./...`.
 - Docs/schema coverage: `./scripts/check-docs-coverage.sh` (CI runs this — it must stay green).
