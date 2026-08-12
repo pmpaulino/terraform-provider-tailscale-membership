@@ -8,8 +8,7 @@ If you also need to manage devices, ACLs, DNS, etc., use the upstream provider �
 
 ## Status
 
-- **v1.0 (current)**: GitHub-Releases-only; not yet on the Terraform Registry. Install via dev override or filesystem mirror (see [Install](#install) below).
-- **v1.1 (planned)**: Terraform Registry submission and additional read-only data sources.
+**v1.0 is available from the [Terraform Registry](https://registry.terraform.io/providers/pmpaulino/tailscale-membership/latest).** The provider intentionally exposes one membership resource and no data sources.
 
 ## Install
 
@@ -32,19 +31,22 @@ provider_installation {
 }
 ```
 
-### Option B — tagged GitHub Release (recommended for production until v1.1 ships to the Registry)
+### Option B — Terraform Registry
 
-1. Download the appropriate platform zip from the [GitHub Releases](https://github.com/pmpaulino/terraform-provider-tailscale-membership/releases) page.
-2. **Verify the GPG signature and SHA256** (see [Verifying releases](#verifying-releases) below).
-3. Unzip into Terraform's filesystem-mirror plugin path:
+Declare the provider and run `terraform init`:
 
-```bash
-mkdir -p ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/1.0.0/linux_amd64
-unzip terraform-provider-tailscale-membership_1.0.0_linux_amd64.zip -d \
-  ~/.terraform.d/plugins/registry.terraform.io/pmpaulino/tailscale-membership/1.0.0/linux_amd64
+```hcl
+terraform {
+  required_providers {
+    tailscale-membership = {
+      source  = "pmpaulino/tailscale-membership"
+      version = "~> 1.0"
+    }
+  }
+}
 ```
 
-`terraform init` will discover the plugin from this path.
+Release archives remain available from [GitHub Releases](https://github.com/pmpaulino/terraform-provider-tailscale-membership/releases) for manual signature verification.
 
 The full operator quickstart, including all three authentication modes and worked examples, is in [`specs/002-standalone-membership-provider/quickstart.md`](./specs/002-standalone-membership-provider/quickstart.md).
 
@@ -65,7 +67,7 @@ terraform {
   required_providers {
     tailscale = {
       source  = "tailscale/tailscale"
-      version = "~> 0.16"
+      version = "~> 0.29"
     }
     tailscale-membership = {
       source  = "pmpaulino/tailscale-membership"
@@ -137,4 +139,4 @@ For changes to the provider itself, see the [Terraform Plugin debugging docs](ht
 
 ## License & attribution
 
-This project is MIT-licensed; see [`LICENSE`](./LICENSE). It is a hard fork of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale); see [`NOTICE`](./NOTICE) for the upstream attribution. There is no ongoing upstream sync.
+This project is MIT-licensed; see [`LICENSE`](./LICENSE). It is a hard fork of [`tailscale/terraform-provider-tailscale`](https://github.com/tailscale/terraform-provider-tailscale); see [`NOTICE`](./NOTICE) for the upstream attribution. Upstream changes are reviewed selectively rather than merged wholesale.

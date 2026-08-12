@@ -4,10 +4,9 @@
 #   darwin × {amd64,arm64}; windows × {amd64,386}; freebsd × {amd64,arm,386}).
 # - GPG-signs the SHA256SUMS file (release-only; snapshot mode skips signing).
 # - Publishes the Terraform Registry manifest (terraform-registry-manifest.json)
-#   alongside the archives so the release shape matches what the Registry expects
-#   when v0.2 is submitted upstream.
+#   alongside the archives so the release shape matches what the Registry expects.
 # - release.prerelease: auto promotes any tag containing a hyphen (e.g.
-#   v0.1.0-rc.1) to GitHub's "pre-release" UI, satisfying FR-014.
+#   v1.1.0-rc.1) to GitHub's "pre-release" UI, satisfying FR-014.
 
 version: 2
 

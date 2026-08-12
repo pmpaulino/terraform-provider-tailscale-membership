@@ -1,5 +1,5 @@
 dist/
-terraform-provider-tailscale
+terraform-provider-tailscale-membership
 .idea/**
 
 # Go

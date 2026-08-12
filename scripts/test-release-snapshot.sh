@@ -8,7 +8,8 @@
 #   1. Exactly 11 zip archives, named per the FR-014 OS/arch matrix
 #      (linux × {amd64,arm64,386,arm}; darwin × {amd64,arm64};
 #      windows × {amd64,386}; freebsd × {amd64,arm,386}).
-#   2. A SHA256SUMS file containing one line per archive (= 11 lines).
+#   2. A SHA256SUMS file containing one line per archive plus the Registry
+#      manifest (= 12 lines).
 #   3. A Registry-shape manifest file (terraform-registry-manifest.json) that
 #      parses as valid JSON, has top-level version: 1 (manifest schema
 #      version per HashiCorp's Terraform Registry contract), and contains a
@@ -40,6 +41,7 @@ cd "$REPO_ROOT"
 
 PROJECT_NAME="terraform-provider-tailscale-membership"
 EXPECTED_ARCHIVE_COUNT=11
+EXPECTED_CHECKSUM_COUNT=$((EXPECTED_ARCHIVE_COUNT + 1))
 
 # FR-014 OS/arch matrix as a sorted, newline-delimited list. Each line is
 # "<os>_<arch>". We compare this set against the produced archives below.
@@ -69,22 +71,14 @@ require_cmd goreleaser
 require_cmd jq
 
 echo "==> Running goreleaser snapshot (no publish, no sign)..."
-rm -rf dist/
 # --skip publish,sign keeps this runnable in CI without GPG / GitHub token.
 goreleaser release --snapshot --clean --skip=publish,sign
 
-# release.extra_files in .goreleaser.yml is only applied during the actual
-# release-publish step (skipped in snapshot mode). Mimic what the real release
-# would do by copying terraform-registry-manifest.json into dist/ with the
-# Registry-expected filename. This lets the same script verify the manifest
-# shape that consumers will actually see.
+# Snapshot mode checksums release.extra_files but does not copy them into dist/.
+# Copy the manifest there so the snapshot can verify the published release shape.
 SNAPSHOT_VERSION=$(jq -r '.version' dist/metadata.json)
-if [ -z "$SNAPSHOT_VERSION" ] || [ "$SNAPSHOT_VERSION" = "null" ]; then
-  echo "ERROR: could not read .version from dist/metadata.json" >&2
-  exit 1
-fi
 cp terraform-registry-manifest.json \
-   "dist/${PROJECT_NAME}_${SNAPSHOT_VERSION}_manifest.json"
+  "dist/${PROJECT_NAME}_${SNAPSHOT_VERSION}_manifest.json"
 
 echo
 echo "==> Verifying dist/ shape..."
@@ -113,7 +107,7 @@ if ! diff <(echo "$EXPECTED_PLATFORMS") <(echo "$ACTUAL_PLATFORMS") >/dev/null; 
 fi
 echo "  [OK] archive os/arch matrix matches FR-014"
 
-# (3) SHA256SUMS file exists and has one line per archive.
+# (3) SHA256SUMS covers every archive and the Registry manifest.
 SHASUMS=$(find dist -maxdepth 1 -name '*_SHA256SUMS' -type f)
 if [ -z "$SHASUMS" ]; then
   echo "FAIL: no SHA256SUMS file found in dist/" >&2
@@ -126,12 +120,17 @@ if [ "$SHASUMS_COUNT" -ne 1 ]; then
   exit 2
 fi
 SHASUMS_LINES=$(wc -l < "$SHASUMS" | tr -d ' ')
-if [ "$SHASUMS_LINES" -ne "$EXPECTED_ARCHIVE_COUNT" ]; then
-  echo "FAIL: SHA256SUMS has $SHASUMS_LINES lines, expected $EXPECTED_ARCHIVE_COUNT" >&2
+if [ "$SHASUMS_LINES" -ne "$EXPECTED_CHECKSUM_COUNT" ]; then
+  echo "FAIL: SHA256SUMS has $SHASUMS_LINES lines, expected $EXPECTED_CHECKSUM_COUNT" >&2
   cat "$SHASUMS" >&2
   exit 2
 fi
-echo "  [OK] $SHASUMS = $EXPECTED_ARCHIVE_COUNT lines"
+if ! grep -q '_manifest.json$' "$SHASUMS"; then
+  echo "FAIL: SHA256SUMS does not cover the Registry manifest" >&2
+  cat "$SHASUMS" >&2
+  exit 2
+fi
+echo "  [OK] $SHASUMS = $EXPECTED_CHECKSUM_COUNT lines (11 archives + manifest)"
 
 # (4) Registry-shape manifest exists and is well-formed.
 MANIFEST=$(find dist -maxdepth 1 -name '*_manifest.json' -type f)
